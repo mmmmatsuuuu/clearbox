@@ -19,6 +19,9 @@ jobs:
           node-version: '24'
           cache: 'npm'
       - run: npm install --no-audit
+      - name: npm ログを出力（失敗時のみ）
+        if: failure()
+        run: cat /home/runner/.npm/_logs/*.log
       - run: npm run build
       - uses: peaceiris/actions-gh-pages@v4
         with:
