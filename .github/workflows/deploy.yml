@@ -3,6 +3,8 @@ name: GitHub Pages へデプロイ
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -23,6 +25,7 @@ jobs:
         run: cat /home/runner/.npm/_logs/*.log
       - run: npm run build
       - uses: peaceiris/actions-gh-pages@v4
+        if: github.ref == 'refs/heads/main'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
