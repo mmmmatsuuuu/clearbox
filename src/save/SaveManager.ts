@@ -16,7 +16,7 @@ const BYTE_COUNT = 32
 
 export const DEFAULT_STATE: Readonly<GameState> = {
   hp: 10,
-  amulet: 0x09,
+  amulet: 0x0F,
   skills: [0x05, 0x00, 0x00, 0x00],
   heroX: 3,
   heroY: 4,
@@ -137,9 +137,6 @@ export const SaveManager = {
     return [
       s.hp & 0xFF, (s.hp >> 8) & 0xFF,
       s.skills[0], s.skills[1], s.skills[2], s.skills[3],
-      s.heroX & 0xFF, s.heroY & 0xFF, s.heroZ & 0xFF,
-      s.npcCodes[0], s.npcCodes[1], s.npcCodes[2],
-      s.bossDefeats[0], s.bossDefeats[1], s.bossDefeats[2], s.bossDefeats[3], s.bossDefeats[4],
     ].reduce((xor, b) => xor ^ b, 0)
   },
 
