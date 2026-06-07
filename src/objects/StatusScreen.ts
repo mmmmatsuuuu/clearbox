@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { SaveManager } from '../save/SaveManager'
-import { getSkillName } from '../data/skills'
+import { getSkillName, getSkillPower } from '../data/skills'
 
 const PW = 380
 const PH = 296
@@ -77,7 +77,7 @@ export class StatusScreen {
         getDesc: () => {
           const code = SaveManager.state.skills[i]
           if (code === 0) return 'スキルが装備されていない。'
-          return `スキルコード: 0x${code.toString(16).padStart(2, '0').toUpperCase()}  威力: ${code}`
+          return `スキルコード: 0x${code.toString(16).padStart(2, '0').toUpperCase()}  威力: ${getSkillPower(code)}`
         },
       })),
     ]
