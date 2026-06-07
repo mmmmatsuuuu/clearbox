@@ -1,46 +1,55 @@
 import Phaser from 'phaser'
 import { SaveManager } from '../save/SaveManager'
+import { DialogBox } from '../objects/DialogBox'
+import { BossConfig } from './BattleScene'
 
 const TILE = 64
 const COLS = 6
 const ROWS = 6
 
-const HERO_START = { x: 2, y: 5 }
 const SOLDIER_POS = { x: 2, y: 1 }
+const STAIRS_POS = { x: 5, y: 0 }
 
 const SOLDIER_DIALOG = [
-  '兵士「よく来たな、勇者よ。',
-  'セーブボタンを押すと',
-  '「save_data.txt」がダウンロードされる。',
-  '中身は16進数で書かれておるぞ。',
-  'ロードボタンでファイルを選べば',
-  '続きから始められる。',
-  'ファイルの中身をよく見てみよ！」',
+  '兵士「よく来たな、勇者よ。\nセーブボタンで「save_data.txt」が\nダウンロードされるぞ。',
+  '兵士「ファイルの中身は16進数で\n書かれておる。よく見てみよ！\nロードボタンで続きから始められる。',
+  '兵士「この塔を登り、最上階の\n魔王を倒すのが使命だ。\n行って参れ！」',
 ]
 
+// Step 2 で 2F ボスに差し替える
+const TEST_BOSS: BossConfig = {
+  name: 'スライム',
+  maxHp: 20,
+  attack: 3,
+  defeatSlot: 0,
+  defeatCode: 0x01,
+  returnScene: 'GameScene',
+}
+
 export class GameScene extends Phaser.Scene {
-  private heroX = HERO_START.x
-  private heroY = HERO_START.y
-  private heroHp = 10
+  private heroX = 0
+  private heroY = 0
+  private canMove = true
 
   private heroContainer!: Phaser.GameObjects.Container
   private hpText!: Phaser.GameObjects.Text
-  private dialogBox!: Phaser.GameObjects.Container
-  private dialogText!: Phaser.GameObjects.Text
-  private dialogVisible = false
-
-  private canMove = true
+  private dialog!: DialogBox
 
   constructor() {
     super({ key: 'GameScene' })
   }
 
   create() {
+    const s = SaveManager.state
+    this.heroX = s.heroX
+    this.heroY = s.heroY
+
     this.drawField()
+    this.createStairs()
     this.createSoldier()
     this.createHero()
     this.createHud()
-    this.createDialog()
+    this.dialog = new DialogBox(this, 8, ROWS * TILE - 118, COLS * TILE - 16, 100)
     this.setupInput()
     this.setupButtons()
   }
@@ -58,12 +67,19 @@ export class GameScene extends Phaser.Scene {
     for (let r = 0; r <= ROWS; r++) g.lineBetween(0, r * TILE, COLS * TILE, r * TILE)
   }
 
+  private createStairs() {
+    const { x, y } = this.tileCenter(STAIRS_POS.x, STAIRS_POS.y)
+    const rect = this.add.rectangle(x, y, TILE - 4, TILE - 4, 0x886622)
+    rect.setStrokeStyle(2, 0xffdd88)
+    this.add.text(x, y, '▲', {
+      fontSize: '28px', color: '#ffdd88', fontFamily: 'monospace',
+    }).setOrigin(0.5)
+  }
+
   private createCharacter(gx: number, gy: number, color: number, label: string) {
     const rect = this.add.rectangle(0, 0, TILE - 10, TILE - 10, color)
     const text = this.add.text(0, 0, label, {
-      fontSize: '26px',
-      color: '#ffffff',
-      fontFamily: 'monospace',
+      fontSize: '26px', color: '#ffffff', fontFamily: 'monospace',
     }).setOrigin(0.5)
     const { x, y } = this.tileCenter(gx, gy)
     return this.add.container(x, y, [rect, text])
@@ -78,73 +94,36 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createHud() {
-    const bg = this.add.rectangle(0, 0, 80, 22, 0x000000, 0.7).setOrigin(0)
-    this.hpText = this.add.text(6, 3, `HP: ${this.heroHp}`, {
-      fontSize: '13px',
-      color: '#ffffff',
-      fontFamily: 'monospace',
+    const bg = this.add.rectangle(0, 0, 90, 22, 0x000000, 0.7).setOrigin(0)
+    this.hpText = this.add.text(6, 3, `HP: ${SaveManager.state.hp}`, {
+      fontSize: '13px', color: '#ffffff', fontFamily: 'monospace',
     })
     this.add.container(4, 4, [bg, this.hpText])
   }
 
-  private createDialog() {
-    const W = COLS * TILE - 16
-    const H = 110
-    const X = 8
-    const Y = ROWS * TILE - H - 8
-
-    const bg = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.88)
-    const border = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0).setStrokeStyle(2, 0xffffff)
-    this.dialogText = this.add.text(8, 8, '', {
-      fontSize: '12px',
-      color: '#ffffff',
-      fontFamily: 'monospace',
-      wordWrap: { width: W - 16 },
-    })
-    const hint = this.add.text(W - 6, H - 6, 'Zで閉じる', {
-      fontSize: '10px',
-      color: '#888888',
-      fontFamily: 'monospace',
-    }).setOrigin(1, 1)
-
-    this.dialogBox = this.add.container(X, Y, [bg, border, this.dialogText, hint])
-    this.dialogBox.setVisible(false)
-  }
-
-  private showDialog(lines: string[]) {
-    this.dialogText.setText(lines.join('\n'))
-    this.dialogBox.setVisible(true)
-    this.dialogVisible = true
-  }
-
-  private hideDialog() {
-    this.dialogBox.setVisible(false)
-    this.dialogVisible = false
-  }
-
-  private isAdjacentToSoldier() {
-    const dx = Math.abs(this.heroX - SOLDIER_POS.x)
-    const dy = Math.abs(this.heroY - SOLDIER_POS.y)
-    return dx + dy === 1
+  private isAdjacent(ax: number, ay: number, bx: number, by: number) {
+    return Math.abs(ax - bx) + Math.abs(ay - by) === 1
   }
 
   private setupInput() {
     this.input.keyboard!.on('keydown', (e: KeyboardEvent) => {
-      if (this.dialogVisible) {
-        if (e.code === 'KeyZ') this.hideDialog()
+      if (this.dialog.isVisible) {
+        if (e.code === 'KeyZ') this.dialog.advance()
         return
       }
 
       if (!this.canMove) return
 
       if (e.code === 'KeyZ') {
-        if (this.isAdjacentToSoldier()) this.showDialog(SOLDIER_DIALOG)
+        if (this.isAdjacent(this.heroX, this.heroY, SOLDIER_POS.x, SOLDIER_POS.y)) {
+          this.dialog.show(SOLDIER_DIALOG)
+        }
         return
       }
 
       let nx = this.heroX
       let ny = this.heroY
-      if (e.code === 'ArrowUp')    ny--
+      if (e.code === 'ArrowUp')         ny--
       else if (e.code === 'ArrowDown')  ny++
       else if (e.code === 'ArrowLeft')  nx--
       else if (e.code === 'ArrowRight') nx++
@@ -152,6 +131,12 @@ export class GameScene extends Phaser.Scene {
 
       if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) return
       if (nx === SOLDIER_POS.x && ny === SOLDIER_POS.y) return
+
+      if (nx === STAIRS_POS.x && ny === STAIRS_POS.y) {
+        this.syncState()
+        this.scene.start('BattleScene', TEST_BOSS)
+        return
+      }
 
       this.heroX = nx
       this.heroY = ny
@@ -163,26 +148,32 @@ export class GameScene extends Phaser.Scene {
     })
   }
 
+  private syncState() {
+    SaveManager.state.heroX = this.heroX
+    SaveManager.state.heroY = this.heroY
+  }
+
   private setupButtons() {
     const saveBtn = document.getElementById('save-btn')
     const loadBtn = document.getElementById('load-btn')
 
     const onSave = () => {
-      SaveManager.save({ heroX: this.heroX, heroY: this.heroY, heroHp: this.heroHp })
+      this.syncState()
+      SaveManager.save()
     }
 
     const onLoad = async () => {
-      const data = await SaveManager.load()
-      if (!data) return
-      if (data.heroX < 0 || data.heroX >= COLS || data.heroY < 0 || data.heroY >= ROWS) return
+      const ok = await SaveManager.load()
+      if (!ok) return
 
-      this.heroX = data.heroX
-      this.heroY = data.heroY
-      this.heroHp = data.heroHp
+      const s = SaveManager.state
+      if (s.heroX < 0 || s.heroX >= COLS || s.heroY < 0 || s.heroY >= ROWS) return
 
+      this.heroX = s.heroX
+      this.heroY = s.heroY
       const { x, y } = this.tileCenter(this.heroX, this.heroY)
       this.heroContainer.setPosition(x, y)
-      this.hpText.setText(`HP: ${this.heroHp}`)
+      this.hpText.setText(`HP: ${s.hp}`)
     }
 
     saveBtn?.addEventListener('click', onSave)
