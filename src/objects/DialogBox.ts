@@ -61,6 +61,11 @@ export class DialogBox {
     }
   }
 
+  dismiss(): void {
+    this.container.setVisible(false)
+    this.onClose?.()
+  }
+
   hide(): void {
     this.container.setVisible(false)
   }

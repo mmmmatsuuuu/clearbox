@@ -4,6 +4,7 @@ export type GameState = {
   skills: [number, number, number, number]
   heroX: number
   heroY: number
+  heroZ: number
   npcCodes: [number, number, number]
   bossDefeats: [number, number, number, number, number]
 }
@@ -15,10 +16,11 @@ const BYTE_COUNT = 32
 
 export const DEFAULT_STATE: Readonly<GameState> = {
   hp: 10,
-  amulet: 0x0D,
-  skills: [0x00, 0x00, 0x00, 0x00],
+  amulet: 0x09,
+  skills: [0x05, 0x00, 0x00, 0x00],
   heroX: 2,
   heroY: 5,
+  heroZ: 1,
   npcCodes: [0x00, 0x00, 0x00],
   bossDefeats: [0x00, 0x00, 0x00, 0x00, 0x00],
 }
@@ -46,30 +48,31 @@ function serialize(s: GameState): number[] {
   b[0x09] = s.skills[3]
   b[0x0A] = s.heroX & 0xFF
   b[0x0B] = s.heroY & 0xFF
-  b[0x0C] = s.npcCodes[0]
-  b[0x0D] = s.npcCodes[1]
-  b[0x0E] = s.npcCodes[2]
-  b[0x0F] = s.bossDefeats[0]
-  b[0x10] = s.bossDefeats[1]
-  b[0x11] = s.bossDefeats[2]
-  b[0x12] = s.bossDefeats[3]
-  b[0x13] = s.bossDefeats[4]
+  b[0x0C] = s.heroZ & 0xFF
+  b[0x0D] = s.npcCodes[0]
+  b[0x0E] = s.npcCodes[1]
+  b[0x0F] = s.npcCodes[2]
+  b[0x10] = s.bossDefeats[0]
+  b[0x11] = s.bossDefeats[1]
+  b[0x12] = s.bossDefeats[2]
+  b[0x13] = s.bossDefeats[3]
+  b[0x14] = s.bossDefeats[4]
   return b
 }
 
 function deserialize(b: number[]): GameState | null {
   if (b.length !== BYTE_COUNT) return null
   if (b[0x00] !== MAGIC_0 || b[0x01] !== MAGIC_1) return null
-  const rawX = b[0x0A]
-  const rawY = b[0x0B]
+  const signed = (v: number) => (v >= 0x80 ? v - 0x100 : v)
   return {
     hp: b[0x03] | (b[0x04] << 8),
     amulet: b[0x05],
     skills: [b[0x06], b[0x07], b[0x08], b[0x09]],
-    heroX: rawX >= 0x80 ? rawX - 0x100 : rawX,
-    heroY: rawY >= 0x80 ? rawY - 0x100 : rawY,
-    npcCodes: [b[0x0C], b[0x0D], b[0x0E]],
-    bossDefeats: [b[0x0F], b[0x10], b[0x11], b[0x12], b[0x13]],
+    heroX: signed(b[0x0A]),
+    heroY: signed(b[0x0B]),
+    heroZ: signed(b[0x0C]),
+    npcCodes: [b[0x0D], b[0x0E], b[0x0F]],
+    bossDefeats: [b[0x10], b[0x11], b[0x12], b[0x13], b[0x14]],
   }
 }
 
@@ -133,10 +136,10 @@ export const SaveManager = {
     const s = this.state
     return [
       s.hp & 0xFF, (s.hp >> 8) & 0xFF,
-      ...s.skills,
-      s.heroX & 0xFF, s.heroY & 0xFF,
-      ...s.npcCodes,
-      ...s.bossDefeats,
+      s.skills[0], s.skills[1], s.skills[2], s.skills[3],
+      s.heroX & 0xFF, s.heroY & 0xFF, s.heroZ & 0xFF,
+      s.npcCodes[0], s.npcCodes[1], s.npcCodes[2],
+      s.bossDefeats[0], s.bossDefeats[1], s.bossDefeats[2], s.bossDefeats[3], s.bossDefeats[4],
     ].reduce((xor, b) => xor ^ b, 0)
   },
 

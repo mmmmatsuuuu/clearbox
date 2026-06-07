@@ -49,6 +49,7 @@ export class GameScene extends Phaser.Scene {
     this.createSoldier()
     this.createHero()
     this.createHud()
+    this.createKeyHint()
     this.dialog = new DialogBox(this, 8, ROWS * TILE - 118, COLS * TILE - 16, 100)
     this.setupInput()
     this.setupButtons()
@@ -101,6 +102,12 @@ export class GameScene extends Phaser.Scene {
     this.add.container(4, 4, [bg, this.hpText])
   }
 
+  private createKeyHint() {
+    this.add.text(COLS * TILE - 6, 4, 'Z:決定  X:キャンセル', {
+      fontSize: '11px', color: '#555555', fontFamily: 'monospace',
+    }).setOrigin(1, 0)
+  }
+
   private isAdjacent(ax: number, ay: number, bx: number, by: number) {
     return Math.abs(ax - bx) + Math.abs(ay - by) === 1
   }
@@ -109,6 +116,7 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard!.on('keydown', (e: KeyboardEvent) => {
       if (this.dialog.isVisible) {
         if (e.code === 'KeyZ') this.dialog.advance()
+        if (e.code === 'KeyX') this.dialog.dismiss()
         return
       }
 
@@ -151,6 +159,7 @@ export class GameScene extends Phaser.Scene {
   private syncState() {
     SaveManager.state.heroX = this.heroX
     SaveManager.state.heroY = this.heroY
+    SaveManager.state.heroZ = 1
   }
 
   private setupButtons() {
