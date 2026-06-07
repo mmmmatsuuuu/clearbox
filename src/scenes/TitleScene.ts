@@ -8,13 +8,19 @@ export class TitleScene extends Phaser.Scene {
   create() {
     const { width, height } = this.scale
 
-    this.add.text(width / 2, height / 2 - 50, 'ClearBox', {
-      fontSize: '40px',
+    this.add.text(width / 2, height / 2 - 70, 'メタクエスト', {
+      fontSize: '36px',
       color: '#ffffff',
       fontFamily: 'monospace',
     }).setOrigin(0.5)
 
-    const hint = this.add.text(width / 2, height / 2 + 20, 'Zキーを押してスタート', {
+    this.add.text(width / 2, height / 2 - 24, '魔王とメモリ安全の姫', {
+      fontSize: '18px',
+      color: '#aaddff',
+      fontFamily: 'monospace',
+    }).setOrigin(0.5)
+
+    const hint = this.add.text(width / 2, height / 2 + 40, 'Zキーを押してスタート', {
       fontSize: '16px',
       color: '#aaaaaa',
       fontFamily: 'monospace',

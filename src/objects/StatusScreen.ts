@@ -64,9 +64,9 @@ export class StatusScreen {
         getDesc: () => '体力の残量。0になると力尽きる。セーブデータで確認・変更できる。',
       },
       {
-        label: '護符',
-        getValue: () => (SaveManager.isAmuletValid() ? '✦ 光っている' : '◆ くすんでいる'),
-        getDesc: () => '誠実の護符。✦は整合の証。◆は何かが狂っているサイン。',
+        label: 'リング',
+        getValue: () => (SaveManager.isRingValid() ? '✦ 光っている' : '◆ くすんでいる'),
+        getDesc: () => '姫が残した誠実のリング。✦は誠実の証。◆は何かが狂っているサイン。',
       },
       ...[0, 1, 2, 3].map(i => ({
         label: `スキル ${i + 1}`,

@@ -1,6 +1,6 @@
 export type GameState = {
   hp: number
-  amulet: number
+  ring: number
   skills: [number, number, number, number]
   heroX: number
   heroY: number
@@ -14,9 +14,18 @@ const MAGIC_1 = 0x42
 const VERSION = 0x01
 const BYTE_COUNT = 32
 
+const LABELS = [
+  'MG', 'MG', 'VS', 'HP', 'HP', 'CS',
+  'SK', 'SK', 'SK', 'SK',
+  'CX', 'CY', 'CZ',
+  'NC', 'NC', 'NC',
+  'BD', 'BD', 'BD', 'BD', 'BD',
+  'RV', 'RV', 'RV', 'RV', 'RV', 'RV', 'RV', 'RV', 'RV', 'RV', 'RV',
+]
+
 export const DEFAULT_STATE: Readonly<GameState> = {
   hp: 10,
-  amulet: 0x0F,
+  ring: 0x0F,
   skills: [0x05, 0x00, 0x00, 0x00],
   heroX: 3,
   heroY: 4,
@@ -41,7 +50,7 @@ function serialize(s: GameState): number[] {
   b[0x02] = VERSION
   b[0x03] = s.hp & 0xFF
   b[0x04] = (s.hp >> 8) & 0xFF
-  b[0x05] = s.amulet & 0xFF
+  b[0x05] = s.ring & 0xFF
   b[0x06] = s.skills[0]
   b[0x07] = s.skills[1]
   b[0x08] = s.skills[2]
@@ -66,7 +75,7 @@ function deserialize(b: number[]): GameState | null {
   const signed = (v: number) => (v >= 0x80 ? v - 0x100 : v)
   return {
     hp: b[0x03] | (b[0x04] << 8),
-    amulet: b[0x05],
+    ring: b[0x05],
     skills: [b[0x06], b[0x07], b[0x08], b[0x09]],
     heroX: signed(b[0x0A]),
     heroY: signed(b[0x0B]),
@@ -77,16 +86,24 @@ function deserialize(b: number[]): GameState | null {
 }
 
 function toHexText(bytes: number[]): string {
-  const row = (s: number[]) =>
-    s.map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ')
-  return row(bytes.slice(0, 16)) + '\n' + row(bytes.slice(16)) + '\n'
+  return bytes.map((b, i) => {
+    const addr = (i + 1).toString(16).padStart(2, '0').toUpperCase()
+    const data = b.toString(16).padStart(2, '0').toUpperCase()
+    return `${LABELS[i]}x${addr} ${data}`
+  }).join('\n') + '\n'
 }
 
 function parseHexText(text: string): number[] | null {
-  const tokens = text.trim().split(/\s+/)
-  if (tokens.length !== BYTE_COUNT) return null
-  const bytes = tokens.map(t => parseInt(t, 16))
-  if (bytes.some(isNaN)) return null
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim().length > 0)
+  if (lines.length !== BYTE_COUNT) return null
+  const bytes = new Array<number>(BYTE_COUNT).fill(0)
+  for (const line of lines) {
+    const m = line.match(/^[A-Z]{2}x([0-9A-Fa-f]{2})\s+([0-9A-Fa-f]{2})$/i)
+    if (!m) return null
+    const offset = parseInt(m[1], 16) - 1
+    if (offset < 0 || offset >= BYTE_COUNT) return null
+    bytes[offset] = parseInt(m[2], 16)
+  }
   return bytes
 }
 
@@ -132,7 +149,7 @@ export const SaveManager = {
     })
   },
 
-  calcAmulet(): number {
+  calcRing(): number {
     const s = this.state
     return [
       s.hp & 0xFF, (s.hp >> 8) & 0xFF,
@@ -140,7 +157,7 @@ export const SaveManager = {
     ].reduce((xor, b) => xor ^ b, 0)
   },
 
-  isAmuletValid(): boolean {
-    return this.state.amulet === this.calcAmulet()
+  isRingValid(): boolean {
+    return this.state.ring === this.calcRing()
   },
 }
