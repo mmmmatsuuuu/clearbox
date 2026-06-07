@@ -79,7 +79,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createKeyHint() {
-    this.add.text(W - 6, 4, 'Z:決定  X:キャンセル', {
+    this.add.text(W - 6, 4, 'Z:決定  X:キャンセル/戻る', {
       fontSize: '11px', color: '#555555', fontFamily: 'monospace',
     }).setOrigin(1, 0)
   }

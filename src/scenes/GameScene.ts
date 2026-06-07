@@ -6,9 +6,11 @@ import { BossConfig } from './BattleScene'
 const TILE = 64
 const COLS = 6
 const ROWS = 6
+const SPEED = 128   // px/sec
+const HERO_HALF = 20  // 衝突判定の半径 (40×40 box)
 
 const SOLDIER_POS = { x: 2, y: 1 }
-const STAIRS_POS = { x: 5, y: 0 }
+const STAIRS_POS  = { x: 5, y: 0 }
 
 const SOLDIER_DIALOG = [
   '兵士「よく来たな、勇者よ。\nセーブボタンで「save_data.txt」が\nダウンロードされるぞ。',
@@ -27,9 +29,10 @@ const TEST_BOSS: BossConfig = {
 }
 
 export class GameScene extends Phaser.Scene {
-  private heroX = 0
-  private heroY = 0
-  private canMove = true
+  private heroPixelX = 0
+  private heroPixelY = 0
+  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
+  private stairsTriggered = false
 
   private heroContainer!: Phaser.GameObjects.Container
   private hpText!: Phaser.GameObjects.Text
@@ -40,9 +43,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    this.stairsTriggered = false
     const s = SaveManager.state
-    this.heroX = s.heroX
-    this.heroY = s.heroY
+    this.heroPixelX = s.heroX * TILE + TILE / 2
+    this.heroPixelY = s.heroY * TILE + TILE / 2
 
     this.drawField()
     this.createStairs()
@@ -51,8 +55,14 @@ export class GameScene extends Phaser.Scene {
     this.createHud()
     this.createKeyHint()
     this.dialog = new DialogBox(this, 8, ROWS * TILE - 118, COLS * TILE - 16, 100)
+    this.cursors = this.input.keyboard!.createCursorKeys()
     this.setupInput()
     this.setupButtons()
+  }
+
+  update(_time: number, delta: number) {
+    this.handleMovement(delta)
+    this.checkTriggers()
   }
 
   private tileCenter(gx: number, gy: number) {
@@ -70,28 +80,27 @@ export class GameScene extends Phaser.Scene {
 
   private createStairs() {
     const { x, y } = this.tileCenter(STAIRS_POS.x, STAIRS_POS.y)
-    const rect = this.add.rectangle(x, y, TILE - 4, TILE - 4, 0x886622)
-    rect.setStrokeStyle(2, 0xffdd88)
+    this.add.rectangle(x, y, TILE - 4, TILE - 4, 0x886622).setStrokeStyle(2, 0xffdd88)
     this.add.text(x, y, '▲', {
       fontSize: '28px', color: '#ffdd88', fontFamily: 'monospace',
     }).setOrigin(0.5)
   }
 
-  private createCharacter(gx: number, gy: number, color: number, label: string) {
+  private createCharacter(px: number, py: number, color: number, label: string) {
     const rect = this.add.rectangle(0, 0, TILE - 10, TILE - 10, color)
     const text = this.add.text(0, 0, label, {
       fontSize: '26px', color: '#ffffff', fontFamily: 'monospace',
     }).setOrigin(0.5)
-    const { x, y } = this.tileCenter(gx, gy)
-    return this.add.container(x, y, [rect, text])
+    return this.add.container(px, py, [rect, text])
   }
 
   private createHero() {
-    this.heroContainer = this.createCharacter(this.heroX, this.heroY, 0x3366cc, '勇')
+    this.heroContainer = this.createCharacter(this.heroPixelX, this.heroPixelY, 0x3366cc, '勇')
   }
 
   private createSoldier() {
-    this.createCharacter(SOLDIER_POS.x, SOLDIER_POS.y, 0xcc7722, '兵')
+    const { x, y } = this.tileCenter(SOLDIER_POS.x, SOLDIER_POS.y)
+    this.createCharacter(x, y, 0xcc7722, '兵')
   }
 
   private createHud() {
@@ -103,13 +112,71 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createKeyHint() {
-    this.add.text(COLS * TILE - 6, 4, 'Z:決定  X:キャンセル', {
+    this.add.text(COLS * TILE - 6, 4, 'Z:決定  X:キャンセル/戻る', {
       fontSize: '11px', color: '#555555', fontFamily: 'monospace',
     }).setOrigin(1, 0)
   }
 
-  private isAdjacent(ax: number, ay: number, bx: number, by: number) {
-    return Math.abs(ax - bx) + Math.abs(ay - by) === 1
+  private collidesWithSolid(px: number, py: number): boolean {
+    const tx = SOLDIER_POS.x * TILE
+    const ty = SOLDIER_POS.y * TILE
+    return (
+      px + HERO_HALF > tx &&
+      px - HERO_HALF < tx + TILE &&
+      py + HERO_HALF > ty &&
+      py - HERO_HALF < ty + TILE
+    )
+  }
+
+  private handleMovement(delta: number) {
+    if (this.dialog.isVisible || this.stairsTriggered) return
+
+    const dt = delta / 1000
+    let dx = 0
+    let dy = 0
+
+    if (this.cursors.left.isDown)  dx -= SPEED * dt
+    if (this.cursors.right.isDown) dx += SPEED * dt
+    if (this.cursors.up.isDown)    dy -= SPEED * dt
+    if (this.cursors.down.isDown)  dy += SPEED * dt
+
+    if (dx !== 0 && dy !== 0) {
+      dx *= 0.707
+      dy *= 0.707
+    }
+
+    const nx = this.heroPixelX + dx
+    const ny = this.heroPixelY + dy
+
+    if (nx - HERO_HALF >= 0 && nx + HERO_HALF <= COLS * TILE && !this.collidesWithSolid(nx, this.heroPixelY)) {
+      this.heroPixelX = nx
+    }
+    if (ny - HERO_HALF >= 0 && ny + HERO_HALF <= ROWS * TILE && !this.collidesWithSolid(this.heroPixelX, ny)) {
+      this.heroPixelY = ny
+    }
+
+    this.heroContainer.setPosition(this.heroPixelX, this.heroPixelY)
+  }
+
+  private checkTriggers() {
+    if (this.dialog.isVisible || this.stairsTriggered) return
+
+    const tileX = Math.floor(this.heroPixelX / TILE)
+    const tileY = Math.floor(this.heroPixelY / TILE)
+
+    if (tileX === STAIRS_POS.x && tileY === STAIRS_POS.y) {
+      this.stairsTriggered = true
+      // 帰還後は階段の一歩手前から再開させる
+      SaveManager.state.heroX = STAIRS_POS.x
+      SaveManager.state.heroY = STAIRS_POS.y + 1
+      SaveManager.state.heroZ = 1
+      this.scene.start('BattleScene', TEST_BOSS)
+    }
+  }
+
+  private isNearNpc(): boolean {
+    const { x, y } = this.tileCenter(SOLDIER_POS.x, SOLDIER_POS.y)
+    return Math.hypot(this.heroPixelX - x, this.heroPixelY - y) < TILE * 1.2
   }
 
   private setupInput() {
@@ -120,45 +187,17 @@ export class GameScene extends Phaser.Scene {
         return
       }
 
-      if (!this.canMove) return
-
-      if (e.code === 'KeyZ') {
-        if (this.isAdjacent(this.heroX, this.heroY, SOLDIER_POS.x, SOLDIER_POS.y)) {
-          this.dialog.show(SOLDIER_DIALOG)
-        }
-        return
+      if (e.code === 'KeyZ' && this.isNearNpc()) {
+        this.dialog.show(SOLDIER_DIALOG)
       }
-
-      let nx = this.heroX
-      let ny = this.heroY
-      if (e.code === 'ArrowUp')         ny--
-      else if (e.code === 'ArrowDown')  ny++
-      else if (e.code === 'ArrowLeft')  nx--
-      else if (e.code === 'ArrowRight') nx++
-      else return
-
-      if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) return
-      if (nx === SOLDIER_POS.x && ny === SOLDIER_POS.y) return
-
-      if (nx === STAIRS_POS.x && ny === STAIRS_POS.y) {
-        this.syncState()
-        this.scene.start('BattleScene', TEST_BOSS)
-        return
-      }
-
-      this.heroX = nx
-      this.heroY = ny
-      const { x, y } = this.tileCenter(nx, ny)
-      this.heroContainer.setPosition(x, y)
-
-      this.canMove = false
-      this.time.delayedCall(150, () => { this.canMove = true })
     })
   }
 
   private syncState() {
-    SaveManager.state.heroX = this.heroX
-    SaveManager.state.heroY = this.heroY
+    const gx = Math.round((this.heroPixelX - TILE / 2) / TILE)
+    const gy = Math.round((this.heroPixelY - TILE / 2) / TILE)
+    SaveManager.state.heroX = Math.max(0, Math.min(COLS - 1, gx))
+    SaveManager.state.heroY = Math.max(0, Math.min(ROWS - 1, gy))
     SaveManager.state.heroZ = 1
   }
 
@@ -174,14 +213,10 @@ export class GameScene extends Phaser.Scene {
     const onLoad = async () => {
       const ok = await SaveManager.load()
       if (!ok) return
-
       const s = SaveManager.state
-      if (s.heroX < 0 || s.heroX >= COLS || s.heroY < 0 || s.heroY >= ROWS) return
-
-      this.heroX = s.heroX
-      this.heroY = s.heroY
-      const { x, y } = this.tileCenter(this.heroX, this.heroY)
-      this.heroContainer.setPosition(x, y)
+      this.heroPixelX = s.heroX * TILE + TILE / 2
+      this.heroPixelY = s.heroY * TILE + TILE / 2
+      this.heroContainer.setPosition(this.heroPixelX, this.heroPixelY)
       this.hpText.setText(`HP: ${s.hp}`)
     }
 
