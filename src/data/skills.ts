@@ -1,7 +1,16 @@
-const SKILL_NAMES: Record<number, string> = {
-  0x05: '斬撃',
+type SkillDef = {
+  name: string
+  power: number
+}
+
+const SKILLS: Record<number, SkillDef> = {
+  0x05: { name: '斬撃', power: 5 },
 }
 
 export function getSkillName(code: number): string {
-  return SKILL_NAMES[code] ?? `???（0x${code.toString(16).padStart(2, '0').toUpperCase()}）`
+  return SKILLS[code]?.name ?? `???（0x${code.toString(16).padStart(2, '0').toUpperCase()}）`
+}
+
+export function getSkillPower(code: number): number {
+  return SKILLS[code]?.power ?? 0
 }

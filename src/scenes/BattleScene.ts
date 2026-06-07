@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { SaveManager } from '../save/SaveManager'
 import { DialogBox } from '../objects/DialogBox'
-import { getSkillName } from '../data/skills'
+import { getSkillName, getSkillPower } from '../data/skills'
 
 export type BossConfig = {
   name: string
@@ -104,7 +104,7 @@ export class BattleScene extends Phaser.Scene {
   private buildMenuItems(): MenuItem[] {
     const items: MenuItem[] = SaveManager.state.skills
       .filter(code => code !== 0)
-      .map(code => ({ label: `${getSkillName(code)}  威力:${code}`, code }))
+      .map(code => ({ label: `${getSkillName(code)}  威力:${getSkillPower(code)}`, code }))
     items.push({ label: '逃げる', code: null })
     return items
   }
@@ -166,7 +166,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private playerAttack(skillCode: number) {
-    const dmg = skillCode
+    const dmg = getSkillPower(skillCode)
     this.bossHp = Math.max(0, this.bossHp - dmg)
     this.bossHpText.setText(`HP: ${this.bossHp}`)
 
