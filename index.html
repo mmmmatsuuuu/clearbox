@@ -9,21 +9,33 @@
       body {
         background: #111;
         display: flex;
-        flex-direction: column;
         justify-content: center;
         align-items: center;
         min-height: 100vh;
-        gap: 12px;
+      }
+      #wrapper {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 16px;
       }
       #game-container canvas {
         display: block;
       }
+      #side-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding-top: 4px;
+      }
       #ui-buttons {
         display: flex;
-        gap: 12px;
+        flex-direction: column;
+        gap: 8px;
       }
       button {
-        padding: 8px 28px;
+        padding: 8px 0;
+        width: 120px;
         font-size: 15px;
         font-family: monospace;
         cursor: pointer;
@@ -37,14 +49,47 @@
         background: #2a2a4e;
         border-color: #8888cc;
       }
+      #controls {
+        color: #777;
+        font-family: monospace;
+        font-size: 13px;
+      }
+      #controls table {
+        border-collapse: collapse;
+      }
+      #controls td {
+        padding: 2px 12px 2px 0;
+        white-space: nowrap;
+      }
+      #controls td:first-child {
+        color: #aaa;
+        font-weight: bold;
+        text-align: right;
+      }
     </style>
-    <script type="module" crossorigin src="/clearbox/assets/index-DeQs6yAV.js"></script>
+    <script type="module" crossorigin src="/clearbox/assets/index-CQgQdu2p.js"></script>
   </head>
   <body>
-    <div id="game-container"></div>
-    <div id="ui-buttons">
-      <button id="save-btn">セーブ</button>
-      <button id="load-btn">ロード</button>
+    <div id="wrapper">
+      <div id="game-container"></div>
+      <div id="side-panel">
+        <div id="ui-buttons">
+          <button id="save-btn">セーブ</button>
+          <button id="load-btn">ロード</button>
+        </div>
+        <div id="controls">
+          <table>
+            <tbody>
+              <tr><td>矢印キー</td><td>移動</td></tr>
+              <tr><td>Z</td><td>決定・話す</td></tr>
+              <tr><td>X</td><td>キャンセル・戻る</td></tr>
+              <tr><td>S</td><td>ステータス確認</td></tr>
+              <tr><td>セーブ</td><td>save_data.txt をダウンロード</td></tr>
+              <tr><td>ロード</td><td>.txt ファイルを読み込む</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </body>
 </html>
