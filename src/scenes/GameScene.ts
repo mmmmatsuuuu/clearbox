@@ -125,7 +125,6 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, this.mapCols * TILE, this.mapRows * TILE)
 
     this.createHud()
-    this.createKeyHint()
     this.dialog = new DialogBox(this, 8, 202, 304, 100)
     this.dialog.setScrollFactor(0)
     this.statusScreen = new StatusScreen(this)
@@ -316,12 +315,6 @@ export class GameScene extends Phaser.Scene {
       fontSize: '13px', color: '#ffffff', fontFamily: 'monospace',
     }).setScrollFactor(0)
     this.add.container(4, 4, [bg, this.hpText]).setScrollFactor(0)
-  }
-
-  private createKeyHint() {
-    this.add.text(314, 4, 'Z:決定  X:キャンセル  S:ステータス', {
-      fontSize: '10px', color: '#555555', fontFamily: 'monospace',
-    }).setOrigin(1, 0).setScrollFactor(0)
   }
 
   // ── Collision ────────────────────────────────────────

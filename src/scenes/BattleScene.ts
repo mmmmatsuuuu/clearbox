@@ -54,7 +54,6 @@ export class BattleScene extends Phaser.Scene {
   create() {
     this.drawLayout()
     this.createStatusTexts()
-    this.createKeyHint()
     this.dialog = new DialogBox(this, 8, H - 118, W - 16, 100)
     this.createActionMenu()
     this.setupInput()
@@ -90,12 +89,6 @@ export class BattleScene extends Phaser.Scene {
     this.heroHpText = this.add.text(44, 154, `HP: ${SaveManager.state.hp}`, {
       fontSize: '14px', color: '#ffffff', fontFamily: 'monospace',
     })
-  }
-
-  private createKeyHint() {
-    this.add.text(W - 6, 4, 'Z:決定  X:キャンセル/戻る', {
-      fontSize: '11px', color: '#555555', fontFamily: 'monospace',
-    }).setOrigin(1, 0)
   }
 
   private createActionMenu() {

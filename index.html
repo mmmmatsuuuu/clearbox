@@ -49,6 +49,23 @@
         background: #2a2a4e;
         border-color: #8888cc;
       }
+      #controls {
+        color: #777;
+        font-family: monospace;
+        font-size: 13px;
+      }
+      #controls table {
+        border-collapse: collapse;
+      }
+      #controls td {
+        padding: 2px 12px 2px 0;
+        white-space: nowrap;
+      }
+      #controls td:first-child {
+        color: #aaa;
+        font-weight: bold;
+        text-align: right;
+      }
     </style>
   </head>
   <body>
@@ -58,6 +75,18 @@
         <div id="ui-buttons">
           <button id="save-btn">セーブ</button>
           <button id="load-btn">ロード</button>
+        </div>
+        <div id="controls">
+          <table>
+            <tbody>
+              <tr><td>矢印キー</td><td>移動</td></tr>
+              <tr><td>Z</td><td>決定・話す</td></tr>
+              <tr><td>X</td><td>キャンセル・戻る</td></tr>
+              <tr><td>S</td><td>ステータス確認</td></tr>
+              <tr><td>セーブ</td><td>save_data.txt をダウンロード</td></tr>
+              <tr><td>ロード</td><td>.txt ファイルを読み込む</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
