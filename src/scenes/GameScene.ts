@@ -2,19 +2,19 @@ import Phaser from 'phaser'
 import { SaveManager } from '../save/SaveManager'
 import { DialogBox } from '../objects/DialogBox'
 import { StatusScreen } from '../objects/StatusScreen'
+import type { BossConfig } from './BattleScene'
 
 const TILE = 64
-const COLS = 7
-const ROWS = 7
 const SPEED = 128
 const HERO_HALF = 20
 
-const NPC_POS         = { x: 2, y: 4 }
-const STATUE_L_ORIGIN = { x: 1, y: 0 }
-const STATUE_R_ORIGIN = { x: 5, y: 0 }
-const STAIRS_UP_POS   = { x: 3, y: 0 }
+// ─── 1F ───────────────────────────────────────────────
+const NPC_1F          = { x: 2, y: 4 }
+const STATUE_L        = { x: 1, y: 0 }
+const STATUE_R        = { x: 5, y: 0 }
+const STAIRS_1F_UP    = { x: 3, y: 0 }
 
-const NPC_DIALOG = [
+const NPC_DIALOG_1F = [
   '老人「……来たか、勇者よ。わしは姫の家来じゃ。\n姫は不正を見透かす力でわれわれの国の安全を\n守ってくれていた。そんな姫が魔王に攫われた。\n塔を登り、頂で魔王を倒すのがそなたの\n使命じゃ。姫を救ってくれ。」',
   '老人「道中には魔王の手下が潜んでいる。\nやつらは手強い。道中でこまめにセーブするのじゃぞ。\n……ただし、不正はいかんぞ。\n魔王は姫の力でそなたを見透かしている。」',
   '老人「これを持ちなさい。\n姫が残した「誠実のリング」じゃ。\n誠実でいれば、きっとそなたを守ってくれるだろう。\nSボタンでステータスを確認できる。\nそこでそなたの誠実さを確認できるだろう。」',
@@ -24,59 +24,113 @@ const STATUE_DIALOG = [
   '「魔王の石像」\n頂の間への道を守護する像。\n頂点に君臨する魔王を模したという。',
 ]
 
-let introCompleted = false
+// ─── 2F ───────────────────────────────────────────────
+const COLS_2F = 16
+const ROWS_2F = 16
 
-type StatueDef = {
-  pos: { x: number; y: number }
-  container: Phaser.GameObjects.Container
+const NPC_2F_DEFS: Array<{ pos: { x: number; y: number }; dialog: string[] }> = [
+  { pos: { x: 4, y: 13 }, dialog: ['ここのボスは粘り強いらしいぞ！頑張れよ！'] },
+  { pos: { x: 6, y: 8  }, dialog: ['おまえそんなHPで大丈夫か？'] },
+  { pos: { x: 2, y: 3  }, dialog: ['ボスに勝てない？もうセーブデータをいじるしか無いよな？\nどこをいじればいいかって？それは自分で考えろ！'] },
+]
+
+const KS_POS         = { x: 7, y: 3 }
+const STAIRS_2F_UP   = { x: 7, y: 0 }
+const STAIRS_2F_DOWN = { x: 7, y: 15 }
+
+const WALLS_2F: { x: number; y: number }[] = [
+  { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 },
+  { x: 0, y: 3 }, { x: 0, y: 4 },
+  { x: 0, y: 10 }, { x: 1, y: 10 }, { x: 2, y: 10 }, { x: 3, y: 10 }, { x: 4, y: 10 },
+  { x: 11, y: 10 }, { x: 12, y: 10 }, { x: 13, y: 10 }, { x: 14, y: 10 }, { x: 15, y: 10 },
+  { x: 10, y: 2 }, { x: 11, y: 2 }, { x: 12, y: 2 }, { x: 13, y: 2 },
+  { x: 10, y: 3 }, { x: 13, y: 3 },
+  { x: 10, y: 4 }, { x: 13, y: 4 },
+  { x: 10, y: 5 }, { x: 11, y: 5 }, { x: 12, y: 5 }, { x: 13, y: 5 },
+  { x: 0, y: 6 }, { x: 1, y: 6 },
+  { x: 0, y: 7 }, { x: 0, y: 8 }, { x: 0, y: 9 },
+  { x: 14, y: 6 }, { x: 15, y: 6 },
+  { x: 15, y: 7 }, { x: 15, y: 8 }, { x: 15, y: 9 },
+]
+
+const KING_SLIME: BossConfig = {
+  name: 'キングスライム',
+  maxHp: 40,
+  attack: 3,
+  healThreshold: 20,
+  cheatHpLimit: 255,
+  defeatSlot: 0,
+  defeatCode: 0x01,
+  returnScene: 'GameScene',
 }
 
+// ─── Module state ─────────────────────────────────────
+let introCompleted = false
+
+// ─── Types ────────────────────────────────────────────
+type StatueDef = { pos: { x: number; y: number }; container: Phaser.GameObjects.Container }
+type NpcDef    = { pos: { x: number; y: number }; dialog: string[] }
+
+// ─── Scene ────────────────────────────────────────────
 export class GameScene extends Phaser.Scene {
   private heroPixelX = 0
   private heroPixelY = 0
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private transitioning = false
   private movementLocked = false
+  private mapCols = 7
+  private mapRows = 7
 
   private heroContainer!: Phaser.GameObjects.Container
   private hpText!: Phaser.GameObjects.Text
   private dialog!: DialogBox
   private statusScreen!: StatusScreen
 
+  private npcs: NpcDef[] = []
   private statues: StatueDef[] = []
+  private wallSet = new Set<string>()
   private secretStairsRevealed = false
-  private secretStairsContainer!: Phaser.GameObjects.Container
+  private secretStairsContainer?: Phaser.GameObjects.Container
+  private bossPos: { x: number; y: number } | null = null
 
   constructor() {
     super({ key: 'GameScene' })
   }
 
   create() {
+    const z = SaveManager.state.heroZ
     this.transitioning = false
     this.secretStairsRevealed = false
     this.statues = []
-    this.movementLocked = !introCompleted
+    this.npcs = []
+    this.wallSet = new Set()
+    this.bossPos = null
+    this.movementLocked = z === 1 && !introCompleted
 
-    const s = SaveManager.state
-    this.heroPixelX = s.heroX * TILE + TILE / 2
-    this.heroPixelY = s.heroY * TILE + TILE / 2
+    this.heroPixelX = SaveManager.state.heroX * TILE + TILE / 2
+    this.heroPixelY = SaveManager.state.heroY * TILE + TILE / 2
 
-    this.drawField()
-    this.createStairs()
-    this.createSecretStairs()
-    this.createStatues()
-    this.createNpc()
+    if (z === 1)       this.create1F()
+    else if (z === 2)  this.create2F()
+    else if (z === 3)  this.create3F()
+    else if (z === -1) this.createMinus1F()
+
     this.createHero()
+    this.cameras.main.startFollow(this.heroContainer, true)
+    this.cameras.main.setBounds(0, 0, this.mapCols * TILE, this.mapRows * TILE)
+
     this.createHud()
     this.createKeyHint()
-    this.dialog = new DialogBox(this, 8, ROWS * TILE - 118, COLS * TILE - 16, 100)
+    this.dialog = new DialogBox(this, 8, 202, 304, 100)
+    this.dialog.setScrollFactor(0)
     this.statusScreen = new StatusScreen(this)
+    this.statusScreen.setScrollFactor(0)
     this.cursors = this.input.keyboard!.createCursorKeys()
     this.setupInput()
     this.setupButtons()
 
-    if (!introCompleted) {
-      this.dialog.show(NPC_DIALOG, () => {
+    if (z === 1 && !introCompleted) {
+      this.dialog.show(NPC_DIALOG_1F, () => {
         introCompleted = true
         this.movementLocked = false
       })
@@ -88,56 +142,141 @@ export class GameScene extends Phaser.Scene {
     this.checkTriggers()
   }
 
+  // ── Floor setup ──────────────────────────────────────
+
+  private create1F() {
+    this.mapCols = 7
+    this.mapRows = 7
+    this.drawField(0x2d5a1b, 0x1e3e12)
+    this.drawStair(STAIRS_1F_UP, '▲', 0x886622, 0xffdd88, '#ffdd88')
+    this.createSecretStairs()
+    this.createStatues()
+    this.drawNpc(NPC_1F, '老', 0xaa8844)
+    this.npcs = [{ pos: NPC_1F, dialog: NPC_DIALOG_1F }]
+  }
+
+  private create2F() {
+    this.mapCols = COLS_2F
+    this.mapRows = ROWS_2F
+    for (const w of WALLS_2F) this.wallSet.add(`${w.x},${w.y}`)
+
+    this.drawField(0x1a1a2a, 0x111122)
+    this.drawWalls2F()
+    this.drawStair(STAIRS_2F_DOWN, '▼', 0x334422, 0x88dd44, '#88dd44')
+
+    const ksDefeated = SaveManager.state.bossDefeats[0] !== 0
+    if (ksDefeated) {
+      this.drawStair(STAIRS_2F_UP, '▲', 0x886622, 0xffdd88, '#ffdd88')
+    } else {
+      this.drawStair(STAIRS_2F_UP, '▲', 0x444444, 0x666666, '#666666')
+    }
+
+    for (const def of NPC_2F_DEFS) this.drawNpc(def.pos, '人', 0x447744)
+    this.npcs = NPC_2F_DEFS.map(d => ({ pos: { ...d.pos }, dialog: d.dialog }))
+
+    if (!ksDefeated) {
+      this.bossPos = { ...KS_POS }
+      this.drawKingSlime()
+    }
+  }
+
+  private create3F() {
+    this.mapCols = 7
+    this.mapRows = 7
+    this.drawField(0x2a1a0a, 0x1a1008)
+    this.drawStair({ x: 3, y: 6 }, '▼', 0x334422, 0x88dd44, '#88dd44')
+    this.drawNpc({ x: 3, y: 3 }, '？', 0x888888)
+    this.npcs = [{ pos: { x: 3, y: 3 }, dialog: ['（この先はまだ暗い。しかし道は必ずある。）'] }]
+  }
+
+  private createMinus1F() {
+    this.mapCols = 7
+    this.mapRows = 7
+    this.drawField(0x000011, 0x110033)
+    this.drawStair({ x: 3, y: 6 }, '▲', 0x334422, 0x88dd44, '#88dd44')
+    this.drawNpc({ x: 3, y: 3 }, '？', 0x333366)
+    this.npcs = [{ pos: { x: 3, y: 3 }, dialog: ['（暗くて何も見えない。）'] }]
+  }
+
+  // ── Drawing helpers ──────────────────────────────────
+
   private tileCenter(gx: number, gy: number) {
     return { x: gx * TILE + TILE / 2, y: gy * TILE + TILE / 2 }
   }
 
-  private drawField() {
+  private drawField(fill: number, gridLine: number) {
     const g = this.add.graphics()
-    g.fillStyle(0x2d5a1b)
-    g.fillRect(0, 0, COLS * TILE, ROWS * TILE)
-    g.lineStyle(1, 0x1e3e12)
-    for (let c = 0; c <= COLS; c++) g.lineBetween(c * TILE, 0, c * TILE, ROWS * TILE)
-    for (let r = 0; r <= ROWS; r++) g.lineBetween(0, r * TILE, COLS * TILE, r * TILE)
+    g.fillStyle(fill)
+    g.fillRect(0, 0, this.mapCols * TILE, this.mapRows * TILE)
+    g.lineStyle(1, gridLine)
+    for (let c = 0; c <= this.mapCols; c++) g.lineBetween(c * TILE, 0, c * TILE, this.mapRows * TILE)
+    for (let r = 0; r <= this.mapRows; r++) g.lineBetween(0, r * TILE, this.mapCols * TILE, r * TILE)
   }
 
-  private createStairs() {
-    const { x, y } = this.tileCenter(STAIRS_UP_POS.x, STAIRS_UP_POS.y)
-    this.add.rectangle(x, y, TILE - 4, TILE - 4, 0x886622).setStrokeStyle(2, 0xffdd88)
-    this.add.text(x, y, '▲', {
-      fontSize: '28px', color: '#ffdd88', fontFamily: 'monospace',
-    }).setOrigin(0.5)
+  private drawWalls2F() {
+    const g = this.add.graphics()
+    g.fillStyle(0x555566)
+    g.lineStyle(1, 0x8888aa)
+    for (const w of WALLS_2F) {
+      g.fillRect(w.x * TILE, w.y * TILE, TILE, TILE)
+      g.strokeRect(w.x * TILE, w.y * TILE, TILE, TILE)
+    }
+  }
+
+  private drawStair(
+    pos: { x: number; y: number },
+    symbol: string,
+    bg: number,
+    border: number,
+    textColor: string,
+  ) {
+    const { x, y } = this.tileCenter(pos.x, pos.y)
+    this.add.rectangle(x, y, TILE - 4, TILE - 4, bg).setStrokeStyle(2, border)
+    this.add.text(x, y, symbol, { fontSize: '28px', color: textColor, fontFamily: 'monospace' }).setOrigin(0.5)
   }
 
   private createSecretStairs() {
-    const { x, y } = this.tileCenter(STATUE_R_ORIGIN.x, STATUE_R_ORIGIN.y)
+    const { x, y } = this.tileCenter(STATUE_R.x, STATUE_R.y)
     const rect = this.add.rectangle(0, 0, TILE - 4, TILE - 4, 0x224466).setStrokeStyle(2, 0x88ccff)
     const label = this.add.text(0, 0, '▼', {
       fontSize: '28px', color: '#88ccff', fontFamily: 'monospace',
     }).setOrigin(0.5)
-    this.secretStairsContainer = this.add.container(x, y, [rect, label])
-    this.secretStairsContainer.setVisible(false)
+    this.secretStairsContainer = this.add.container(x, y, [rect, label]).setVisible(false)
   }
 
   private createStatues() {
-    for (const origin of [STATUE_L_ORIGIN, STATUE_R_ORIGIN]) {
+    for (const origin of [STATUE_L, STATUE_R]) {
       const { x, y } = this.tileCenter(origin.x, origin.y)
       const rect = this.add.rectangle(0, 0, TILE - 8, TILE - 8, 0x333344).setStrokeStyle(2, 0x8888bb)
       const text = this.add.text(0, 0, '像', {
         fontSize: '28px', color: '#aaaacc', fontFamily: 'monospace',
       }).setOrigin(0.5)
-      const container = this.add.container(x, y, [rect, text])
-      this.statues.push({ pos: { x: origin.x, y: origin.y }, container })
+      const c = this.add.container(x, y, [rect, text])
+      this.statues.push({ pos: { x: origin.x, y: origin.y }, container: c })
     }
   }
 
-  private createNpc() {
-    const { x, y } = this.tileCenter(NPC_POS.x, NPC_POS.y)
-    const rect = this.add.rectangle(0, 0, TILE - 10, TILE - 10, 0xaa8844)
-    const text = this.add.text(0, 0, '老', {
+  private drawNpc(pos: { x: number; y: number }, label: string, color: number) {
+    const { x, y } = this.tileCenter(pos.x, pos.y)
+    const rect = this.add.rectangle(0, 0, TILE - 10, TILE - 10, color)
+    const text = this.add.text(0, 0, label, {
       fontSize: '26px', color: '#ffffff', fontFamily: 'monospace',
     }).setOrigin(0.5)
     this.add.container(x, y, [rect, text])
+  }
+
+  private drawKingSlime() {
+    if (!this.bossPos) return
+    const { x, y } = this.tileCenter(this.bossPos.x, this.bossPos.y)
+    const g = this.add.graphics()
+    g.fillStyle(0x3399ff)
+    g.lineStyle(3, 0xaaddff)
+    g.fillCircle(0, 2, 24)
+    g.strokeCircle(0, 2, 24)
+    const crown = this.add.text(0, -14, '♛', {
+      fontSize: '14px', color: '#ffee00', fontFamily: 'monospace',
+    }).setOrigin(0.5)
+    this.add.container(x, y, [g, crown])
   }
 
   private createHero() {
@@ -154,18 +293,20 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createHud() {
-    const bg = this.add.rectangle(0, 0, 90, 22, 0x000000, 0.7).setOrigin(0)
+    const bg = this.add.rectangle(0, 0, 90, 22, 0x000000, 0.7).setOrigin(0).setScrollFactor(0)
     this.hpText = this.add.text(6, 3, `HP: ${SaveManager.state.hp}`, {
       fontSize: '13px', color: '#ffffff', fontFamily: 'monospace',
-    })
-    this.add.container(4, 4, [bg, this.hpText])
+    }).setScrollFactor(0)
+    this.add.container(4, 4, [bg, this.hpText]).setScrollFactor(0)
   }
 
   private createKeyHint() {
-    this.add.text(COLS * TILE - 6, 4, 'Z:決定  X:キャンセル  S:ステータス', {
+    this.add.text(314, 4, 'Z:決定  X:キャンセル  S:ステータス', {
       fontSize: '10px', color: '#555555', fontFamily: 'monospace',
-    }).setOrigin(1, 0)
+    }).setOrigin(1, 0).setScrollFactor(0)
   }
+
+  // ── Collision ────────────────────────────────────────
 
   private overlapsTile(px: number, py: number, tx: number, ty: number): boolean {
     return (
@@ -176,20 +317,42 @@ export class GameScene extends Phaser.Scene {
     )
   }
 
+  private collidesWithWalls(px: number, py: number): boolean {
+    const x0 = Math.floor((px - HERO_HALF) / TILE)
+    const x1 = Math.floor((px + HERO_HALF - 1) / TILE)
+    const y0 = Math.floor((py - HERO_HALF) / TILE)
+    const y1 = Math.floor((py + HERO_HALF - 1) / TILE)
+    for (let tx = x0; tx <= x1; tx++) {
+      for (let ty = y0; ty <= y1; ty++) {
+        if (this.wallSet.has(`${tx},${ty}`)) return true
+      }
+    }
+    return false
+  }
+
+  private collidesWithNpcs(px: number, py: number): boolean {
+    return this.npcs.some(n => this.overlapsTile(px, py, n.pos.x, n.pos.y))
+  }
+
+  private collidesWithBoss(px: number, py: number): boolean {
+    if (!this.bossPos) return false
+    return this.overlapsTile(px, py, this.bossPos.x, this.bossPos.y)
+  }
+
   private getCollidingStatue(px: number, py: number): StatueDef | null {
     return this.statues.find(s => this.overlapsTile(px, py, s.pos.x, s.pos.y)) ?? null
   }
 
   private isSolidTileForStatue(tx: number, ty: number, exclude: StatueDef): boolean {
-    if (tx === NPC_POS.x && ty === NPC_POS.y) return true
-    if (tx === STAIRS_UP_POS.x && ty === STAIRS_UP_POS.y) return true
+    if (this.npcs.some(n => n.pos.x === tx && n.pos.y === ty)) return true
+    if (tx === STAIRS_1F_UP.x && ty === STAIRS_1F_UP.y) return true
     return this.statues.some(s => s !== exclude && s.pos.x === tx && s.pos.y === ty)
   }
 
   private tryPushStatue(statue: StatueDef, dx: number, dy: number): boolean {
     const nx = statue.pos.x + dx
     const ny = statue.pos.y + dy
-    if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) return false
+    if (nx < 0 || nx >= this.mapCols || ny < 0 || ny >= this.mapRows) return false
     if (this.isSolidTileForStatue(nx, ny, statue)) return false
 
     statue.pos.x = nx
@@ -199,12 +362,14 @@ export class GameScene extends Phaser.Scene {
 
     const isRightStatue = statue === this.statues[1]
     if (isRightStatue && !this.secretStairsRevealed &&
-        (nx !== STATUE_R_ORIGIN.x || ny !== STATUE_R_ORIGIN.y)) {
+        (nx !== STATUE_R.x || ny !== STATUE_R.y)) {
       this.secretStairsRevealed = true
-      this.secretStairsContainer.setVisible(true)
+      this.secretStairsContainer?.setVisible(true)
     }
     return true
   }
+
+  // ── Movement & triggers ──────────────────────────────
 
   private handleMovement(delta: number) {
     if (this.dialog.isVisible || this.statusScreen.isVisible || this.movementLocked || this.transitioning) return
@@ -212,39 +377,36 @@ export class GameScene extends Phaser.Scene {
     const dt = delta / 1000
     let dx = 0
     let dy = 0
-
     if (this.cursors.left.isDown)  dx -= SPEED * dt
     if (this.cursors.right.isDown) dx += SPEED * dt
     if (this.cursors.up.isDown)    dy -= SPEED * dt
     if (this.cursors.down.isDown)  dy += SPEED * dt
-
-    if (dx !== 0 && dy !== 0) {
-      dx *= 0.707
-      dy *= 0.707
-    }
+    if (dx !== 0 && dy !== 0) { dx *= 0.707; dy *= 0.707 }
 
     const nx = this.heroPixelX + dx
     const ny = this.heroPixelY + dy
 
-    if (nx - HERO_HALF >= 0 && nx + HERO_HALF <= COLS * TILE) {
+    if (nx - HERO_HALF >= 0 && nx + HERO_HALF <= this.mapCols * TILE) {
       const hit = this.getCollidingStatue(nx, this.heroPixelY)
-      if (hit === null && !this.overlapsTile(nx, this.heroPixelY, NPC_POS.x, NPC_POS.y)) {
+      if (hit === null &&
+          !this.collidesWithWalls(nx, this.heroPixelY) &&
+          !this.collidesWithNpcs(nx, this.heroPixelY) &&
+          !this.collidesWithBoss(nx, this.heroPixelY)) {
         this.heroPixelX = nx
       } else if (hit !== null && dy === 0) {
-        if (this.tryPushStatue(hit, dx > 0 ? 1 : -1, 0)) {
-          this.heroPixelX = nx
-        }
+        if (this.tryPushStatue(hit, dx > 0 ? 1 : -1, 0)) this.heroPixelX = nx
       }
     }
 
-    if (ny - HERO_HALF >= 0 && ny + HERO_HALF <= ROWS * TILE) {
+    if (ny - HERO_HALF >= 0 && ny + HERO_HALF <= this.mapRows * TILE) {
       const hit = this.getCollidingStatue(this.heroPixelX, ny)
-      if (hit === null && !this.overlapsTile(this.heroPixelX, ny, NPC_POS.x, NPC_POS.y)) {
+      if (hit === null &&
+          !this.collidesWithWalls(this.heroPixelX, ny) &&
+          !this.collidesWithNpcs(this.heroPixelX, ny) &&
+          !this.collidesWithBoss(this.heroPixelX, ny)) {
         this.heroPixelY = ny
       } else if (hit !== null && dx === 0) {
-        if (this.tryPushStatue(hit, 0, dy > 0 ? 1 : -1)) {
-          this.heroPixelY = ny
-        }
+        if (this.tryPushStatue(hit, 0, dy > 0 ? 1 : -1)) this.heroPixelY = ny
       }
     }
 
@@ -253,21 +415,27 @@ export class GameScene extends Phaser.Scene {
 
   private checkTriggers() {
     if (this.dialog.isVisible || this.statusScreen.isVisible || this.movementLocked || this.transitioning) return
+    const z = SaveManager.state.heroZ
+    if (z === 1)       this.checkTriggers1F()
+    else if (z === 2)  this.checkTriggers2F()
+    else if (z === 3)  this.checkTriggers3F()
+    else if (z === -1) this.checkTriggersMinus1F()
+  }
 
-    const tileX = Math.floor(this.heroPixelX / TILE)
-    const tileY = Math.floor(this.heroPixelY / TILE)
+  private checkTriggers1F() {
+    const tx = Math.floor(this.heroPixelX / TILE)
+    const ty = Math.floor(this.heroPixelY / TILE)
 
-    if (tileX === STAIRS_UP_POS.x && tileY === STAIRS_UP_POS.y) {
+    if (tx === STAIRS_1F_UP.x && ty === STAIRS_1F_UP.y) {
       this.transitioning = true
-      SaveManager.state.heroX = 3
-      SaveManager.state.heroY = 6
+      SaveManager.state.heroX = 7
+      SaveManager.state.heroY = 13
       SaveManager.state.heroZ = 2
       this.scene.restart()
       return
     }
 
-    if (this.secretStairsRevealed &&
-        tileX === STATUE_R_ORIGIN.x && tileY === STATUE_R_ORIGIN.y) {
+    if (this.secretStairsRevealed && tx === STATUE_R.x && ty === STATUE_R.y) {
       this.transitioning = true
       SaveManager.state.heroX = 3
       SaveManager.state.heroY = 0
@@ -276,10 +444,70 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private checkTriggers2F() {
+    const tx = Math.floor(this.heroPixelX / TILE)
+    const ty = Math.floor(this.heroPixelY / TILE)
+
+    if (this.bossPos) {
+      const bc = this.tileCenter(this.bossPos.x, this.bossPos.y)
+      if (Math.hypot(this.heroPixelX - bc.x, this.heroPixelY - bc.y) < TILE) {
+        this.transitioning = true
+        this.syncState()
+        this.scene.start('BattleScene', KING_SLIME)
+        return
+      }
+    }
+
+    const ksDefeated = SaveManager.state.bossDefeats[0] !== 0
+
+    if (ksDefeated && tx === STAIRS_2F_UP.x && ty === STAIRS_2F_UP.y) {
+      this.transitioning = true
+      SaveManager.state.heroX = 3
+      SaveManager.state.heroY = 6
+      SaveManager.state.heroZ = 3
+      this.scene.restart()
+      return
+    }
+
+    if (tx === STAIRS_2F_DOWN.x && ty === STAIRS_2F_DOWN.y) {
+      this.transitioning = true
+      SaveManager.state.heroX = STAIRS_1F_UP.x
+      SaveManager.state.heroY = STAIRS_1F_UP.y + 1
+      SaveManager.state.heroZ = 1
+      this.scene.restart()
+    }
+  }
+
+  private checkTriggers3F() {
+    const tx = Math.floor(this.heroPixelX / TILE)
+    const ty = Math.floor(this.heroPixelY / TILE)
+    if (tx === 3 && ty === 6) {
+      this.transitioning = true
+      SaveManager.state.heroX = STAIRS_2F_UP.x
+      SaveManager.state.heroY = STAIRS_2F_UP.y + 1
+      SaveManager.state.heroZ = 2
+      this.scene.restart()
+    }
+  }
+
+  private checkTriggersMinus1F() {
+    const tx = Math.floor(this.heroPixelX / TILE)
+    const ty = Math.floor(this.heroPixelY / TILE)
+    if (tx === 3 && ty === 6) {
+      this.transitioning = true
+      SaveManager.state.heroX = STATUE_R.x
+      SaveManager.state.heroY = STATUE_R.y + 1
+      SaveManager.state.heroZ = 1
+      this.scene.restart()
+    }
+  }
+
   private isNear(pos: { x: number; y: number }): boolean {
     const { x, y } = this.tileCenter(pos.x, pos.y)
     return Math.hypot(this.heroPixelX - x, this.heroPixelY - y) < TILE * 1.2
   }
+
+  // ── Input & buttons ──────────────────────────────────
 
   private setupInput() {
     this.input.keyboard!.on('keydown', (e: KeyboardEvent) => {
@@ -304,7 +532,8 @@ export class GameScene extends Phaser.Scene {
       }
 
       if (e.code === 'KeyZ') {
-        if (this.isNear(NPC_POS)) this.dialog.show(NPC_DIALOG)
+        const nearNpc = this.npcs.find(n => this.isNear(n.pos))
+        if (nearNpc) { this.dialog.show(nearNpc.dialog); return }
         const nearStatue = this.statues.find(s => this.isNear(s.pos))
         if (nearStatue) this.dialog.show(STATUE_DIALOG)
       }
@@ -314,8 +543,8 @@ export class GameScene extends Phaser.Scene {
   private syncState() {
     const gx = Math.round((this.heroPixelX - TILE / 2) / TILE)
     const gy = Math.round((this.heroPixelY - TILE / 2) / TILE)
-    SaveManager.state.heroX = Math.max(0, Math.min(COLS - 1, gx))
-    SaveManager.state.heroY = Math.max(0, Math.min(ROWS - 1, gy))
+    SaveManager.state.heroX = Math.max(0, Math.min(this.mapCols - 1, gx))
+    SaveManager.state.heroY = Math.max(0, Math.min(this.mapRows - 1, gy))
   }
 
   private setupButtons() {
@@ -328,9 +557,11 @@ export class GameScene extends Phaser.Scene {
     }
 
     const onLoad = async () => {
+      const prevZ = SaveManager.state.heroZ
       const ok = await SaveManager.load()
       if (!ok) return
       const s = SaveManager.state
+      if (s.heroZ !== prevZ) { this.scene.restart(); return }
       this.heroPixelX = s.heroX * TILE + TILE / 2
       this.heroPixelY = s.heroY * TILE + TILE / 2
       this.heroContainer.setPosition(this.heroPixelX, this.heroPixelY)
@@ -339,7 +570,6 @@ export class GameScene extends Phaser.Scene {
 
     saveBtn?.addEventListener('click', onSave)
     loadBtn?.addEventListener('click', onLoad)
-
     this.events.once('shutdown', () => {
       saveBtn?.removeEventListener('click', onSave)
       loadBtn?.removeEventListener('click', onLoad)

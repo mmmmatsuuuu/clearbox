@@ -7,6 +7,8 @@ export type BossConfig = {
   name: string
   maxHp: number
   attack: number
+  healThreshold?: number
+  cheatHpLimit?: number
   defeatSlot: number
   defeatCode: number
   returnScene: string
@@ -15,14 +17,15 @@ export type BossConfig = {
 type Phase = 'player-turn' | 'busy' | 'result'
 type MenuItem = { label: string; code: number | null }
 
-const W = 384
-const H = 384
-const MENU_TOP = 260
-const LINE_H = 24
+const W = 320
+const H = 320
+const MENU_TOP = 196
+const LINE_H = 20
 
 export class BattleScene extends Phaser.Scene {
   private boss!: BossConfig
   private bossHp = 0
+  private hasHealed = false
   private phase: Phase = 'player-turn'
   private menuItems: MenuItem[] = []
   private menuCursor = 0
@@ -41,6 +44,7 @@ export class BattleScene extends Phaser.Scene {
   init(data: BossConfig) {
     this.boss = data
     this.bossHp = data.maxHp
+    this.hasHealed = false
     this.phase = 'player-turn'
     this.menuTexts = []
   }
@@ -53,27 +57,35 @@ export class BattleScene extends Phaser.Scene {
     this.createActionMenu()
     this.setupInput()
 
+    if (this.boss.cheatHpLimit !== undefined && SaveManager.state.hp > this.boss.cheatHpLimit) {
+      this.showMsg(
+        'そなたの生命力…あり得ぬ数値だ。駆け出しの勇者がそれほどの力を持てるはずがない。リセットだ〜',
+        () => { SaveManager.reset(); this.scene.start('TitleScene') },
+      )
+      return
+    }
+
     this.showMsg(`${this.boss.name}が現れた！`, () => this.showMenu())
   }
 
   private drawLayout() {
     this.add.rectangle(W / 2, H / 2, W, H, 0x1a0a0a)
-    this.add.rectangle(W / 2, 80, 340, 110, 0x2d1010)
-    this.add.rectangle(W / 2, 218, 340, 76, 0x0f1a2d)
+    this.add.rectangle(W / 2, 58, 290, 88, 0x2d1010)
+    this.add.rectangle(W / 2, 156, 290, 64, 0x0f1a2d)
   }
 
   private createStatusTexts() {
-    this.add.text(44, 34, this.boss.name, {
+    this.add.text(44, 22, this.boss.name, {
       fontSize: '18px', color: '#ff8888', fontFamily: 'monospace',
     })
-    this.bossHpText = this.add.text(44, 58, `HP: ${this.bossHp}`, {
+    this.bossHpText = this.add.text(44, 44, `HP: ${this.bossHp}`, {
       fontSize: '14px', color: '#ffffff', fontFamily: 'monospace',
     })
 
-    this.add.text(44, 192, '勇者', {
+    this.add.text(44, 132, '勇者', {
       fontSize: '18px', color: '#88aaff', fontFamily: 'monospace',
     })
-    this.heroHpText = this.add.text(44, 216, `HP: ${SaveManager.state.hp}`, {
+    this.heroHpText = this.add.text(44, 154, `HP: ${SaveManager.state.hp}`, {
       fontSize: '14px', color: '#ffffff', fontFamily: 'monospace',
     })
   }
@@ -173,6 +185,23 @@ export class BattleScene extends Phaser.Scene {
     if (this.bossHp <= 0) {
       this.phase = 'result'
       this.showMsg(`${this.boss.name}を倒した！`, () => this.onWin())
+      return
+    }
+
+    if (
+      this.boss.healThreshold !== undefined &&
+      this.bossHp <= this.boss.healThreshold &&
+      !this.hasHealed
+    ) {
+      this.hasHealed = true
+      this.bossHp = this.boss.maxHp
+      this.bossHpText.setText(`HP: ${this.bossHp}`)
+      this.hideMenu()
+      this.phase = 'busy'
+      this.dialog.show(
+        [`${dmg}のダメージを与えた！`, `${this.boss.name}はHPを回復した！`],
+        () => this.enemyTurn(),
+      )
       return
     }
 

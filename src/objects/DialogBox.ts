@@ -70,6 +70,13 @@ export class DialogBox {
     this.container.setVisible(false)
   }
 
+  setScrollFactor(value: number): void {
+    this.container.setScrollFactor(value)
+    for (const child of this.container.list) {
+      (child as unknown as { setScrollFactor(v: number): void }).setScrollFactor(value)
+    }
+  }
+
   private renderPage(): void {
     this.textObj.setText(this.messages[this.page])
     this.hintObj.setText(this.page < this.messages.length - 1 ? 'Z で次へ' : 'Z で閉じる')

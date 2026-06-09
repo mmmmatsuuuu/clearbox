@@ -2,12 +2,12 @@ import Phaser from 'phaser'
 import { SaveManager } from '../save/SaveManager'
 import { getSkillName, getSkillPower } from '../data/skills'
 
-const PW = 380
-const PH = 296
-const PX = (448 - PW) / 2
-const PY = (448 - PH) / 2
+const PW = 296
+const PH = 276
+const PX = (320 - PW) / 2
+const PY = (320 - PH) / 2
 const ITEMS_Y = 46
-const LINE_H = 32
+const LINE_H = 26
 
 type Item = {
   label: string
@@ -104,7 +104,7 @@ export class StatusScreen {
         }),
       )
       this.valueTexts.push(
-        this.scene.add.text(160, ITEMS_Y + i * LINE_H, item.getValue(), {
+        this.scene.add.text(130, ITEMS_Y + i * LINE_H, item.getValue(), {
           fontSize: '14px', color: '#ffffff', fontFamily: 'monospace',
         }),
       )
@@ -127,6 +127,13 @@ export class StatusScreen {
       ...labelTexts, ...this.valueTexts,
       divider, this.descText, hint,
     ])
+  }
+
+  setScrollFactor(value: number): void {
+    this.container.setScrollFactor(value)
+    for (const child of this.container.list) {
+      (child as unknown as { setScrollFactor(v: number): void }).setScrollFactor(value)
+    }
   }
 
   private refreshValues(): void {

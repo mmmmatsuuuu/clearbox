@@ -4,7 +4,7 @@ type SkillDef = {
 }
 
 const SKILLS: Record<number, SkillDef> = {
-  0x05: { name: '斬撃', power: 5 },
+  0x05: { name: '斬撃', power: 10 },
 }
 
 export function getSkillName(code: number): string {
