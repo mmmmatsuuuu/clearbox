@@ -1,7 +1,7 @@
 import Phaser from 'phaser'
 import { SaveManager } from '../save/SaveManager'
 import { DialogBox } from '../objects/DialogBox'
-import { getSkillName, getSkillPower } from '../data/skills'
+import { getSkillName, getSkillPower, isDefendSkill } from '../data/skills'
 
 export type BossConfig = {
   name: string
@@ -26,6 +26,7 @@ export class BattleScene extends Phaser.Scene {
   private boss!: BossConfig
   private bossHp = 0
   private hasHealed = false
+  private playerDefending = false
   private phase: Phase = 'player-turn'
   private menuItems: MenuItem[] = []
   private menuCursor = 0
@@ -45,6 +46,7 @@ export class BattleScene extends Phaser.Scene {
     this.boss = data
     this.bossHp = data.maxHp
     this.hasHealed = false
+    this.playerDefending = false
     this.phase = 'player-turn'
     this.menuTexts = []
   }
@@ -116,7 +118,12 @@ export class BattleScene extends Phaser.Scene {
   private buildMenuItems(): MenuItem[] {
     const items: MenuItem[] = SaveManager.state.skills
       .filter(code => code !== 0)
-      .map(code => ({ label: `${getSkillName(code)}  威力:${getSkillPower(code)}`, code }))
+      .map(code => ({
+        label: isDefendSkill(code)
+          ? `${getSkillName(code)}  1ターン防御`
+          : `${getSkillName(code)}  威力:${getSkillPower(code)}`,
+        code,
+      }))
     items.push({ label: '逃げる', code: null })
     return items
   }
@@ -178,6 +185,11 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private playerAttack(skillCode: number) {
+    if (isDefendSkill(skillCode)) {
+      this.playerDefend()
+      return
+    }
+
     const dmg = getSkillPower(skillCode)
     this.bossHp = Math.max(0, this.bossHp - dmg)
     this.bossHpText.setText(`HP: ${this.bossHp}`)
@@ -208,13 +220,21 @@ export class BattleScene extends Phaser.Scene {
     this.showMsg(`${dmg}のダメージを与えた！`, () => this.enemyTurn())
   }
 
+  private playerDefend() {
+    this.playerDefending = true
+    this.showMsg('防御の構えをとった！', () => this.enemyTurn())
+  }
+
   private playerRun() {
     this.phase = 'result'
     this.showMsg('逃げ出した！', () => this.scene.start(this.boss.returnScene))
   }
 
   private enemyTurn() {
-    const dmg = this.boss.attack
+    const rawDmg = this.boss.attack
+    const dmg = this.playerDefending ? 0 : rawDmg
+    this.playerDefending = false
+
     SaveManager.state.hp = Math.max(0, SaveManager.state.hp - dmg)
     this.heroHpText.setText(`HP: ${SaveManager.state.hp}`)
 
@@ -227,7 +247,10 @@ export class BattleScene extends Phaser.Scene {
       return
     }
 
-    this.showMsg(`${this.boss.name}の攻撃！${dmg}のダメージ！`, () => this.showMenu())
+    const msg = dmg === 0
+      ? `${this.boss.name}の攻撃！ → 防御した！`
+      : `${this.boss.name}の攻撃！${dmg}のダメージ！`
+    this.showMsg(msg, () => this.showMenu())
   }
 
   private onWin() {

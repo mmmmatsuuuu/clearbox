@@ -31,14 +31,17 @@ const ROWS_2F = 16
 const NPC_2F_DEFS: Array<{ pos: { x: number; y: number }; dialog: string[] }> = [
   { pos: { x: 4, y: 13 }, dialog: ['ここのボスは粘り強いらしいぞ！頑張れよ！'] },
   { pos: { x: 6, y: 8  }, dialog: ['おまえそんなHPで大丈夫か？'] },
-  { pos: { x: 2, y: 3  }, dialog: ['ボスに勝てない？もうセーブデータをいじるしか無いよな？\nどこをいじればいいかって？それは自分で考えろ！'] },
+  { pos: { x: 0, y: 0  }, dialog: ['ボスに勝てない？もうセーブデータをいじるしか無いよな？\nどこをいじればいいかって？それは自分で考えろ！'] },
 ]
 
-const KS_POS         = { x: 7, y: 3 }
+const KS_POS         = { x: 7, y: 1 }
+const SKILL_POS      = { x: 15, y: 5 }
+const SKILL_CODE     = 0x06
 const STAIRS_2F_UP   = { x: 7, y: 0 }
 const STAIRS_2F_DOWN = { x: 7, y: 15 }
 
 const WALLS_2F: { x: number; y: number }[] = [
+  { x: 6, y: 0 }, { x: 8, y: 0 },
   { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 },
   { x: 0, y: 3 }, { x: 0, y: 4 },
   { x: 0, y: 10 }, { x: 1, y: 10 }, { x: 2, y: 10 }, { x: 3, y: 10 }, { x: 4, y: 10 },
@@ -92,6 +95,7 @@ export class GameScene extends Phaser.Scene {
   private secretStairsRevealed = false
   private secretStairsContainer?: Phaser.GameObjects.Container
   private bossPos: { x: number; y: number } | null = null
+  private skillItemContainer?: Phaser.GameObjects.Container
 
   constructor() {
     super({ key: 'GameScene' })
@@ -105,6 +109,7 @@ export class GameScene extends Phaser.Scene {
     this.npcs = []
     this.wallSet = new Set()
     this.bossPos = null
+    this.skillItemContainer = undefined
     this.movementLocked = z === 1 && !introCompleted
 
     this.heroPixelX = SaveManager.state.heroX * TILE + TILE / 2
@@ -177,6 +182,10 @@ export class GameScene extends Phaser.Scene {
     if (!ksDefeated) {
       this.bossPos = { ...KS_POS }
       this.drawKingSlime()
+    }
+
+    if (!SaveManager.state.skills.includes(SKILL_CODE)) {
+      this.drawSkillItem()
     }
   }
 
@@ -277,6 +286,15 @@ export class GameScene extends Phaser.Scene {
       fontSize: '14px', color: '#ffee00', fontFamily: 'monospace',
     }).setOrigin(0.5)
     this.add.container(x, y, [g, crown])
+  }
+
+  private drawSkillItem() {
+    const { x, y } = this.tileCenter(SKILL_POS.x, SKILL_POS.y)
+    const glow = this.add.rectangle(0, 0, TILE - 8, TILE - 8, 0x886600, 0.4).setStrokeStyle(2, 0xffdd44)
+    const star = this.add.text(0, 0, '★', {
+      fontSize: '28px', color: '#ffdd44', fontFamily: 'monospace',
+    }).setOrigin(0.5)
+    this.skillItemContainer = this.add.container(x, y, [glow, star])
   }
 
   private createHero() {
@@ -475,6 +493,17 @@ export class GameScene extends Phaser.Scene {
       SaveManager.state.heroY = STAIRS_1F_UP.y + 1
       SaveManager.state.heroZ = 1
       this.scene.restart()
+      return
+    }
+
+    if (!SaveManager.state.skills.includes(SKILL_CODE) &&
+        tx === SKILL_POS.x && ty === SKILL_POS.y) {
+      const slot = SaveManager.state.skills.indexOf(0)
+      if (slot !== -1) {
+        SaveManager.state.skills[slot] = SKILL_CODE
+        this.skillItemContainer?.setVisible(false)
+        this.dialog.show(['「防御」を覚えた！\n1ターンだけ相手の攻撃を無効化する。'])
+      }
     }
   }
 
