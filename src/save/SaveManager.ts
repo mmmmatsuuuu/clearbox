@@ -1,3 +1,5 @@
+import { getSkillCodeByIndex } from '../data/skills'
+
 export type GameState = {
   hp: number
   ring: number
@@ -23,23 +25,21 @@ const LABELS = [
   'RV', 'RV', 'RV', 'RV', 'RV', 'RV', 'RV', 'RV', 'RV', 'RV', 'RV',
 ]
 
-export const DEFAULT_STATE: Readonly<GameState> = {
-  hp: 10,
-  ring: 0x0F,
-  skills: [0x05, 0x00, 0x00, 0x00],
-  heroX: 3,
-  heroY: 4,
-  heroZ: 1,
-  npcCodes: [0x00, 0x00, 0x00],
-  bossDefeats: [0x00, 0x00, 0x00, 0x00, 0x00],
-}
-
 function cloneDefault(): GameState {
+  const skills: [number, number, number, number] = [
+    getSkillCodeByIndex(0), 0x00, 0x00, 0x00,
+  ]
+  const hp = 10
+  const ring = (hp & 0xFF) ^ ((hp >> 8) & 0xFF) ^ skills[0] ^ skills[1] ^ skills[2] ^ skills[3]
   return {
-    ...DEFAULT_STATE,
-    skills: [...DEFAULT_STATE.skills] as [number, number, number, number],
-    npcCodes: [...DEFAULT_STATE.npcCodes] as [number, number, number],
-    bossDefeats: [...DEFAULT_STATE.bossDefeats] as [number, number, number, number, number],
+    hp,
+    ring,
+    skills,
+    heroX: 3,
+    heroY: 4,
+    heroZ: 1,
+    npcCodes: [0x00, 0x00, 0x00],
+    bossDefeats: [0x00, 0x00, 0x00, 0x00, 0x00],
   }
 }
 
@@ -159,5 +159,9 @@ export const SaveManager = {
 
   isRingValid(): boolean {
     return this.state.ring === this.calcRing()
+  },
+
+  updateRing(): void {
+    this.state.ring = this.calcRing()
   },
 }

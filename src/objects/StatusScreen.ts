@@ -1,13 +1,13 @@
 import Phaser from 'phaser'
 import { SaveManager } from '../save/SaveManager'
-import { getSkillName, getSkillPower } from '../data/skills'
+import { getSkillName, getSkillEffect } from '../data/skills'
 
-const PW = 380
-const PH = 296
-const PX = (448 - PW) / 2
-const PY = (448 - PH) / 2
+const PW = 296
+const PH = 276
+const PX = (320 - PW) / 2
+const PY = (320 - PH) / 2
 const ITEMS_Y = 46
-const LINE_H = 32
+const LINE_H = 26
 
 type Item = {
   label: string
@@ -61,12 +61,12 @@ export class StatusScreen {
       {
         label: 'HP',
         getValue: () => String(SaveManager.state.hp),
-        getDesc: () => '体力の残量。0になると力尽きる。セーブデータで確認・変更できる。',
+        getDesc: () => '体力の残量。0になると力尽きる。\nセーブデータで確認・変更できる。',
       },
       {
         label: 'リング',
         getValue: () => (SaveManager.isRingValid() ? '✦ 光っている' : '◆ くすんでいる'),
-        getDesc: () => '姫が残した誠実のリング。✦は誠実の証。◆は何かが狂っているサイン。',
+        getDesc: () => '姫が残した誠実のリング。\n✦は誠実の証。◆は狂いのサイン。',
       },
       ...[0, 1, 2, 3].map(i => ({
         label: `スキル ${i + 1}`,
@@ -77,7 +77,8 @@ export class StatusScreen {
         getDesc: () => {
           const code = SaveManager.state.skills[i]
           if (code === 0) return 'スキルが装備されていない。'
-          return `スキルコード: 0x${code.toString(16).padStart(2, '0').toUpperCase()}  威力: ${getSkillPower(code)}`
+          const hex = `0x${code.toString(16).padStart(2, '0').toUpperCase()}`
+          return `コード: ${hex}\n効果: ${getSkillEffect(code)}`
         },
       })),
     ]
@@ -104,7 +105,7 @@ export class StatusScreen {
         }),
       )
       this.valueTexts.push(
-        this.scene.add.text(160, ITEMS_Y + i * LINE_H, item.getValue(), {
+        this.scene.add.text(130, ITEMS_Y + i * LINE_H, item.getValue(), {
           fontSize: '14px', color: '#ffffff', fontFamily: 'monospace',
         }),
       )
@@ -116,6 +117,7 @@ export class StatusScreen {
     this.descText = this.scene.add.text(16, divY + 12, '', {
       fontSize: '12px', color: '#cccccc', fontFamily: 'monospace',
       wordWrap: { width: PW - 32 },
+      maxLines: 3,
     })
 
     const hint = this.scene.add.text(PW - 8, PH - 8, 'X:閉じる', {
@@ -127,6 +129,13 @@ export class StatusScreen {
       ...labelTexts, ...this.valueTexts,
       divider, this.descText, hint,
     ])
+  }
+
+  setScrollFactor(value: number): void {
+    this.container.setScrollFactor(value)
+    for (const child of this.container.list) {
+      (child as unknown as { setScrollFactor(v: number): void }).setScrollFactor(value)
+    }
   }
 
   private refreshValues(): void {

@@ -24,6 +24,7 @@ export class DialogBox {
       color: '#ffffff',
       fontFamily: 'monospace',
       wordWrap: { width: width - 20 },
+      maxLines: 5,
     })
     this.hintObj = scene.add
       .text(width - 6, height - 6, '', {
@@ -68,6 +69,13 @@ export class DialogBox {
 
   hide(): void {
     this.container.setVisible(false)
+  }
+
+  setScrollFactor(value: number): void {
+    this.container.setScrollFactor(value)
+    for (const child of this.container.list) {
+      (child as unknown as { setScrollFactor(v: number): void }).setScrollFactor(value)
+    }
   }
 
   private renderPage(): void {
