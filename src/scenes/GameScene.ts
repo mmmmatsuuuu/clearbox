@@ -2,6 +2,7 @@ import Phaser from 'phaser'
 import { SaveManager } from '../save/SaveManager'
 import { DialogBox } from '../objects/DialogBox'
 import { StatusScreen } from '../objects/StatusScreen'
+import { getSkillCodeByIndex } from '../data/skills'
 import type { BossConfig } from './BattleScene'
 
 const TILE = 64
@@ -15,9 +16,10 @@ const STATUE_R        = { x: 5, y: 0 }
 const STAIRS_1F_UP    = { x: 3, y: 0 }
 
 const NPC_DIALOG_1F = [
-  '老人「……来たか、勇者よ。わしは姫の家来じゃ。\n姫は不正を見透かす力でわれわれの国の安全を\n守ってくれていた。そんな姫が魔王に攫われた。\n塔を登り、頂で魔王を倒すのがそなたの\n使命じゃ。姫を救ってくれ。」',
-  '老人「道中には魔王の手下が潜んでいる。\nやつらは手強い。道中でこまめにセーブするのじゃぞ。\n……ただし、不正はいかんぞ。\n魔王は姫の力でそなたを見透かしている。」',
-  '老人「これを持ちなさい。\n姫が残した「誠実のリング」じゃ。\n誠実でいれば、きっとそなたを守ってくれるだろう。\nSボタンでステータスを確認できる。\nそこでそなたの誠実さを確認できるだろう。」',
+  '老人「……来たか、勇者よ。\nわしは姫の家来じゃ。\n姫は不正を見透かす力で\nこの国を守ってくれていた。」',
+  '老人「そんな姫が魔王に攫われた。\n塔を登り、頂で魔王を倒すのが\nそなたの使命じゃ。\n姫を救ってくれ。」',
+  '老人「道中には魔王の手下がいる。\nこまめにセーブするのじゃぞ。\n……ただし、不正はいかんぞ。」',
+  '老人「これを持ちなさい。\n姫が残した「誠実のリング」じゃ。\nSボタンでステータスを確認できる。\n誠実さを確認できるだろう。」',
 ]
 
 const STATUE_DIALOG = [
@@ -31,12 +33,15 @@ const ROWS_2F = 16
 const NPC_2F_DEFS: Array<{ pos: { x: number; y: number }; dialog: string[] }> = [
   { pos: { x: 4, y: 13 }, dialog: ['ここのボスは粘り強いらしいぞ！頑張れよ！'] },
   { pos: { x: 6, y: 8  }, dialog: ['おまえそんなHPで大丈夫か？'] },
-  { pos: { x: 0, y: 0  }, dialog: ['ボスに勝てない？もうセーブデータをいじるしか無いよな？\nどこをいじればいいかって？それは自分で考えろ！'] },
+  { pos: { x: 0, y: 0  }, dialog: [
+    'ボスに勝てない？\nもうセーブデータをいじるしか\n無いよな？',
+    'どこをいじればいいかって？\nそれは自分で考えろ！',
+  ]},
 ]
 
 const KS_POS         = { x: 7, y: 1 }
 const SKILL_POS      = { x: 15, y: 5 }
-const SKILL_CODE     = 0x06
+const SKILL_CODE     = getSkillCodeByIndex(1)
 const STAIRS_2F_UP   = { x: 7, y: 0 }
 const STAIRS_2F_DOWN = { x: 7, y: 15 }
 
@@ -60,7 +65,7 @@ const KING_SLIME: BossConfig = {
   name: 'キングスライム',
   maxHp: 40,
   attack: 3,
-  healThreshold: 20,
+  healThreshold: 10,
   cheatHpLimit: 255,
   defeatSlot: 0,
   defeatCode: 0x01,
@@ -493,7 +498,9 @@ export class GameScene extends Phaser.Scene {
         tx === SKILL_POS.x && ty === SKILL_POS.y) {
       const slot = SaveManager.state.skills.indexOf(0)
       if (slot !== -1) {
+        const wasValid = SaveManager.isRingValid()
         SaveManager.state.skills[slot] = SKILL_CODE
+        if (wasValid) SaveManager.updateRing()
         this.skillItemContainer?.setVisible(false)
         this.dialog.show(['「防御」を覚えた！\n1ターンだけ相手の攻撃を無効化する。'])
       }

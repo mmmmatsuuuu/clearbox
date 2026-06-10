@@ -24,6 +24,7 @@ export class DialogBox {
       color: '#ffffff',
       fontFamily: 'monospace',
       wordWrap: { width: width - 20 },
+      maxLines: 5,
     })
     this.hintObj = scene.add
       .text(width - 6, height - 6, '', {

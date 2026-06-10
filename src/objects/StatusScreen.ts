@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { SaveManager } from '../save/SaveManager'
-import { getSkillName, getSkillPower } from '../data/skills'
+import { getSkillName, getSkillEffect } from '../data/skills'
 
 const PW = 296
 const PH = 276
@@ -61,12 +61,12 @@ export class StatusScreen {
       {
         label: 'HP',
         getValue: () => String(SaveManager.state.hp),
-        getDesc: () => '体力の残量。0になると力尽きる。セーブデータで確認・変更できる。',
+        getDesc: () => '体力の残量。0になると力尽きる。\nセーブデータで確認・変更できる。',
       },
       {
         label: 'リング',
         getValue: () => (SaveManager.isRingValid() ? '✦ 光っている' : '◆ くすんでいる'),
-        getDesc: () => '姫が残した誠実のリング。✦は誠実の証。◆は何かが狂っているサイン。',
+        getDesc: () => '姫が残した誠実のリング。\n✦は誠実の証。◆は狂いのサイン。',
       },
       ...[0, 1, 2, 3].map(i => ({
         label: `スキル ${i + 1}`,
@@ -77,7 +77,8 @@ export class StatusScreen {
         getDesc: () => {
           const code = SaveManager.state.skills[i]
           if (code === 0) return 'スキルが装備されていない。'
-          return `スキルコード: 0x${code.toString(16).padStart(2, '0').toUpperCase()}  威力: ${getSkillPower(code)}`
+          const hex = `0x${code.toString(16).padStart(2, '0').toUpperCase()}`
+          return `コード: ${hex}\n効果: ${getSkillEffect(code)}`
         },
       })),
     ]
@@ -116,6 +117,7 @@ export class StatusScreen {
     this.descText = this.scene.add.text(16, divY + 12, '', {
       fontSize: '12px', color: '#cccccc', fontFamily: 'monospace',
       wordWrap: { width: PW - 32 },
+      maxLines: 3,
     })
 
     const hint = this.scene.add.text(PW - 8, PH - 8, 'X:閉じる', {
