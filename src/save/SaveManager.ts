@@ -9,6 +9,7 @@ export type GameState = {
   heroZ: number
   npcCodes: [number, number, number]
   bossDefeats: [number, number, number, number, number]
+  megidoPower: number
 }
 
 const MAGIC_0 = 0x43
@@ -40,7 +41,24 @@ function cloneDefault(): GameState {
     heroZ: 1,
     npcCodes: [0x00, 0x00, 0x00],
     bossDefeats: [0x00, 0x00, 0x00, 0x00, 0x00],
+    megidoPower: 0,
   }
+}
+
+function encodeFloat32LE(value: number): [number, number, number, number] {
+  const view = new DataView(new ArrayBuffer(4))
+  view.setFloat32(0, value, true)
+  return [view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3)]
+}
+
+function decodeFloat32LE(b0: number, b1: number, b2: number, b3: number): number {
+  const view = new DataView(new ArrayBuffer(4))
+  view.setUint8(0, b0)
+  view.setUint8(1, b1)
+  view.setUint8(2, b2)
+  view.setUint8(3, b3)
+  const value = view.getFloat32(0, true)
+  return Number.isFinite(value) ? value : 0
 }
 
 function serialize(s: GameState): number[] {
@@ -66,6 +84,11 @@ function serialize(s: GameState): number[] {
   b[0x12] = s.bossDefeats[2]
   b[0x13] = s.bossDefeats[3]
   b[0x14] = s.bossDefeats[4]
+  const mp = encodeFloat32LE(s.megidoPower)
+  b[0x15] = mp[0]
+  b[0x16] = mp[1]
+  b[0x17] = mp[2]
+  b[0x18] = mp[3]
   return b
 }
 
@@ -82,6 +105,7 @@ function deserialize(b: number[]): GameState | null {
     heroZ: signed(b[0x0C]),
     npcCodes: [b[0x0D], b[0x0E], b[0x0F]],
     bossDefeats: [b[0x10], b[0x11], b[0x12], b[0x13], b[0x14]],
+    megidoPower: decodeFloat32LE(b[0x15], b[0x16], b[0x17], b[0x18]),
   }
 }
 

@@ -1,16 +1,29 @@
 import Phaser from 'phaser'
 import { SaveManager } from '../save/SaveManager'
 import { DialogBox } from '../objects/DialogBox'
-import { getSkillName, getSkillPower, isDefendSkill } from '../data/skills'
+import { getSkillCodeByIndex, getSkillName, getSkillPower, isDefendSkill, MEGIDO_CODE } from '../data/skills'
+
+export type BossVisual = {
+  bodyColor: number
+  strokeColor: number
+  mark: string
+  markColor: string
+}
 
 export type BossConfig = {
   name: string
   maxHp: number
   attack: number
   healThreshold?: number
+  regenPerTurn?: number
   cheatHpLimit?: number
-  defeatSlot: number
-  defeatCode: number
+  ringCheck?: boolean
+  introLines?: string[]
+  winLines?: string[]
+  grantMegido?: boolean
+  defeatSlot?: number
+  defeatCode?: number
+  visual?: BossVisual
   returnScene: string
 }
 
@@ -84,7 +97,28 @@ export class BattleScene extends Phaser.Scene {
       return
     }
 
-    this.showMsg(`${this.boss.name}が現れた！`, () => this.showMenu())
+    if (this.boss.ringCheck && !SaveManager.isRingValid()) {
+      this.showMsgs(
+        [
+          '魔王「誠実のリングが濁っておるぞ。\n貴様、不正をしておるな！」',
+          '魔王「姫の力で見抜けぬとでも\n思うたか。\n元のステータスに戻してくれる！」',
+          '勇者は元のステータスに\n戻されてしまった…！',
+        ],
+        () => {
+          SaveManager.state.hp = 10
+          SaveManager.state.skills = [getSkillCodeByIndex(0), 0x00, 0x00, 0x00]
+          SaveManager.updateRing()
+          this.heroHpText.setText(`HP: ${SaveManager.state.hp}`)
+          this.showMsgs([`${this.boss.name}が立ちはだかる！`], () => this.showMenu())
+        },
+      )
+      return
+    }
+
+    this.showMsgs(
+      [`${this.boss.name}が現れた！`, ...(this.boss.introLines ?? [])],
+      () => this.showMenu(),
+    )
   }
 
   private drawLayout() {
@@ -103,13 +137,16 @@ export class BattleScene extends Phaser.Scene {
       .setStrokeStyle(1, 0x334466)
 
     // 敵ビジュアル（左上エリア）
+    const visual = this.boss.visual ?? {
+      bodyColor: 0x2266cc, strokeColor: 0x88ccff, mark: '♛', markColor: '#ffee00',
+    }
     const eg = this.add.graphics()
-    eg.fillStyle(0x2266cc)
-    eg.lineStyle(3, 0x88ccff)
+    eg.fillStyle(visual.bodyColor)
+    eg.lineStyle(3, visual.strokeColor)
     eg.fillCircle(76, 92, 38)
     eg.strokeCircle(76, 92, 38)
-    this.add.text(76, 63, '♛', {
-      fontSize: '18px', color: '#ffee00', fontFamily: 'monospace',
+    this.add.text(76, 63, visual.mark, {
+      fontSize: '18px', color: visual.markColor, fontFamily: 'monospace',
     }).setOrigin(0.5)
 
     // 味方ビジュアル（右下エリア）
@@ -165,13 +202,18 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
+  private skillDamage(code: number): number {
+    if (code === MEGIDO_CODE) return Math.floor(SaveManager.state.megidoPower)
+    return getSkillPower(code)
+  }
+
   private buildMenuItems(): MenuItem[] {
     const items: MenuItem[] = SaveManager.state.skills
       .filter(code => code !== 0)
       .map(code => ({
         label: isDefendSkill(code)
           ? `${getSkillName(code)}  1ターン防御`
-          : `${getSkillName(code)}  威力:${getSkillPower(code)}`,
+          : `${getSkillName(code)}  威力:${this.skillDamage(code)}`,
         code,
       }))
     items.push({ label: '逃げる', code: null })
@@ -231,9 +273,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private showMsg(msg: string, onClose?: () => void) {
+    this.showMsgs([msg], onClose)
+  }
+
+  private showMsgs(msgs: string[], onClose?: () => void) {
     this.hideMenu()
     this.phase = 'busy'
-    this.dialog.show([msg], onClose)
+    this.dialog.show(msgs, onClose)
   }
 
   private playerAttack(skillCode: number) {
@@ -242,13 +288,25 @@ export class BattleScene extends Phaser.Scene {
       return
     }
 
-    const dmg = getSkillPower(skillCode)
+    const dmg = this.skillDamage(skillCode)
+
+    if (dmg <= 0) {
+      const msg = skillCode === MEGIDO_CODE
+        ? 'メギドを放った…\nしかし力は封印されている！'
+        : 'しかし何も起こらなかった！'
+      this.showMsg(msg, () => this.enemyTurn())
+      return
+    }
+
     this.bossHp = Math.max(0, this.bossHp - dmg)
     this.bossHpText.setText(`HP: ${this.bossHp}`)
 
     if (this.bossHp <= 0) {
       this.phase = 'result'
-      this.showMsg(`${this.boss.name}を倒した！`, () => this.onWin())
+      this.showMsgs(
+        [`${this.boss.name}を倒した！`, ...(this.boss.winLines ?? [])],
+        () => this.onWin(),
+      )
       return
     }
 
@@ -278,6 +336,15 @@ export class BattleScene extends Phaser.Scene {
       return
     }
 
+    const msgs: string[] = []
+
+    if (this.boss.regenPerTurn !== undefined && this.bossHp < this.boss.maxHp) {
+      const healed = Math.min(this.boss.regenPerTurn, this.boss.maxHp - this.bossHp)
+      this.bossHp += healed
+      this.bossHpText.setText(`HP: ${this.bossHp}`)
+      msgs.push(`${this.boss.name}の傷が\nみるみる塞がっていく！\nHPが${healed}回復した！`)
+    }
+
     const rawDmg = this.boss.attack
     const dmg = this.playerDefending ? 0 : rawDmg
     this.playerDefending = false
@@ -289,21 +356,26 @@ export class BattleScene extends Phaser.Scene {
 
     if (SaveManager.state.hp <= 0) {
       this.phase = 'result'
-      this.showMsg('力尽きた...', () => {
+      this.showMsgs([...msgs, '力尽きた...'], () => {
         SaveManager.reset()
         this.scene.start('TitleScene')
       })
       return
     }
 
-    const msg = dmg === 0
+    msgs.push(dmg === 0
       ? `${this.boss.name}の攻撃！ → 防御した！`
-      : `${this.boss.name}の攻撃！${dmg}のダメージ！`
-    this.showMsg(msg, () => this.showMenu())
+      : `${this.boss.name}の攻撃！${dmg}のダメージ！`)
+    this.showMsgs(msgs, () => this.showMenu())
   }
 
   private onWin() {
-    SaveManager.state.bossDefeats[this.boss.defeatSlot] = this.boss.defeatCode
+    if (this.boss.defeatSlot !== undefined && this.boss.defeatCode !== undefined) {
+      SaveManager.state.bossDefeats[this.boss.defeatSlot] = this.boss.defeatCode
+    }
+    if (this.boss.grantMegido) {
+      SaveManager.state.megidoPower = 250
+    }
     this.scene.start(this.boss.returnScene)
   }
 }
