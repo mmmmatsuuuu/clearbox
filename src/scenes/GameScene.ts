@@ -2,10 +2,13 @@ import Phaser from 'phaser'
 import { SaveManager } from '../save/SaveManager'
 import { DialogBox } from '../objects/DialogBox'
 import { StatusScreen } from '../objects/StatusScreen'
-import { getSkillCodeByIndex } from '../data/skills'
 import type { BossConfig, BossVisual } from './BattleScene'
 import {
   type NpcData,
+  COLS_1F, ROWS_1F, NPCS_1F, NPC_DIALOG_1F, STATUE_DIALOG,
+  STAIRS_1F_UP, STATUE_L, STATUE_R,
+  COLS_2F, ROWS_2F, WALLS_2F, NPCS_2F, KING_SLIME,
+  STAIRS_2F_UP, STAIRS_2F_DOWN, BOSS_2F_POS, SKILL_2F_POS,
   COLS_3F, ROWS_3F, MIN_COL_3F, WALLS_3F, NPCS_3F, GOLEM,
   STAIRS_3F_UP, STAIRS_3F_DOWN, BOSS_3F_POS, HIDDEN_SKILL_POS, HIDDEN_EXIT_POS,
   COLS_4F, ROWS_4F, WALLS_4F, NPCS_4F, DULLAHAN,
@@ -22,70 +25,6 @@ import {
 const TILE = 64
 const SPEED = 128
 const HERO_HALF = 20
-
-// ─── 1F ───────────────────────────────────────────────
-const NPC_1F          = { x: 2, y: 4 }
-const STATUE_L        = { x: 1, y: 0 }
-const STATUE_R        = { x: 5, y: 0 }
-const STAIRS_1F_UP    = { x: 3, y: 0 }
-
-const NPC_DIALOG_1F = [
-  '老人「……来たか、勇者よ。\nわしは姫の家来じゃ。\n姫は不正を見透かす力で\nこの国を守ってくれていた。」',
-  '老人「そんな姫が魔王に攫われた。\n塔を登り、頂で魔王を倒すのが\nそなたの使命じゃ。\n姫を救ってくれ。」',
-  '老人「道中には魔王の手下がいる。\nこまめにセーブするのじゃぞ。\n……ただし、不正はいかんぞ。」',
-  '老人「これを持ちなさい。\n姫が残した「誠実のリング」じゃ。\nSボタンでステータスを確認できる。\n誠実さを確認できるだろう。」',
-  '老人「わしはこの塔の1階で、\n最初にそなたを迎えた者。\n…それだけは、覚えておいて\nくれよ。」',
-]
-
-const STATUE_DIALOG = [
-  '「魔王の石像」\n頂の間への道を守護する像。\n頂点に君臨する魔王を模したという。',
-]
-
-// ─── 2F ───────────────────────────────────────────────
-const COLS_2F = 16
-const ROWS_2F = 16
-
-const NPC_2F_DEFS: Array<{ pos: { x: number; y: number }; dialog: string[] }> = [
-  { pos: { x: 4, y: 13 }, dialog: ['ここのボスは粘り強いらしいぞ！頑張れよ！'] },
-  { pos: { x: 6, y: 8  }, dialog: ['おまえそんなHPで大丈夫か？'] },
-  { pos: { x: 0, y: 0  }, dialog: [
-    'ボスに勝てない？\nもうセーブデータをいじるしか\n無いよな？',
-    'どこをいじればいいかって？\nそれは自分で考えろ！',
-  ]},
-]
-
-const KS_POS         = { x: 7, y: 1 }
-const SKILL_POS      = { x: 15, y: 5 }
-const SKILL_CODE     = getSkillCodeByIndex(1)
-const STAIRS_2F_UP   = { x: 7, y: 0 }
-const STAIRS_2F_DOWN = { x: 7, y: 15 }
-
-const WALLS_2F: { x: number; y: number }[] = [
-  { x: 6, y: 0 }, { x: 8, y: 0 },
-  { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 },
-  { x: 0, y: 3 }, { x: 0, y: 4 },
-  { x: 0, y: 10 }, { x: 1, y: 10 }, { x: 2, y: 10 }, { x: 3, y: 10 }, { x: 4, y: 10 },
-  { x: 11, y: 10 }, { x: 12, y: 10 }, { x: 13, y: 10 }, { x: 14, y: 10 }, { x: 15, y: 10 },
-  { x: 10, y: 2 }, { x: 11, y: 2 }, { x: 12, y: 2 }, { x: 13, y: 2 },
-  { x: 10, y: 3 }, { x: 13, y: 3 },
-  { x: 10, y: 4 }, { x: 13, y: 4 },
-  { x: 10, y: 5 }, { x: 11, y: 5 }, { x: 12, y: 5 }, { x: 13, y: 5 },
-  { x: 0, y: 6 }, { x: 1, y: 6 },
-  { x: 0, y: 7 }, { x: 0, y: 8 }, { x: 0, y: 9 },
-  { x: 14, y: 6 }, { x: 15, y: 6 },
-  { x: 15, y: 7 }, { x: 15, y: 8 }, { x: 15, y: 9 },
-]
-
-const KING_SLIME: BossConfig = {
-  name: 'キングスライム',
-  maxHp: 40,
-  attack: 3,
-  healThreshold: 10,
-  cheatHpLimit: 255,
-  defeatSlot: 0,
-  defeatCode: 0x7C,
-  returnScene: 'GameScene',
-}
 
 // ─── Module state ─────────────────────────────────────
 let introCompleted = false
@@ -195,14 +134,13 @@ export class GameScene extends Phaser.Scene {
   // ── Floor setup ──────────────────────────────────────
 
   private create1F() {
-    this.mapCols = 7
-    this.mapRows = 7
+    this.mapCols = COLS_1F
+    this.mapRows = ROWS_1F
     this.drawField(0x2d5a1b, 0x1e3e12)
     this.drawStair(STAIRS_1F_UP, '▲', 0x886622, 0xffdd88, '#ffdd88')
     this.createSecretStairs()
     this.createStatues()
-    this.drawNpc(NPC_1F, '老', 0xaa8844)
-    this.npcs = [{ pos: NPC_1F, dialog: NPC_DIALOG_1F }]
+    this.setNpcs(NPCS_1F)
   }
 
   private create2F() {
@@ -215,16 +153,9 @@ export class GameScene extends Phaser.Scene {
     this.drawStair(STAIRS_2F_DOWN, '▼', 0x334422, 0x88dd44, '#88dd44')
     this.drawLockableStair(STAIRS_2F_UP, SaveManager.state.bossDefeats[0] !== 0)
 
-    for (const def of NPC_2F_DEFS) this.drawNpc(def.pos, '人', 0x447744)
-    this.npcs = NPC_2F_DEFS.map(d => ({ pos: { ...d.pos }, dialog: d.dialog }))
-
-    if (SaveManager.state.bossDefeats[0] === 0) {
-      this.bossPos = { ...KS_POS }
-      this.bossConfig = KING_SLIME
-      this.drawKingSlime()
-    }
-
-    this.addSkillItem(SKILL_POS, SKILL_CODE, [
+    this.setNpcs(NPCS_2F)
+    this.setupBoss(KING_SLIME, BOSS_2F_POS)
+    this.addSkillItem(SKILL_2F_POS, 0x5F, [
       '「防御」を覚えた！\n1ターンだけ相手の攻撃を\n無効化する。\nコード: 0x5F',
     ])
   }
@@ -420,20 +351,6 @@ export class GameScene extends Phaser.Scene {
       fontSize: '26px', color: '#ffffff', fontFamily: 'monospace',
     }).setOrigin(0.5)
     this.add.container(x, y, [rect, text])
-  }
-
-  private drawKingSlime() {
-    if (!this.bossPos) return
-    const { x, y } = this.tileCenter(this.bossPos.x, this.bossPos.y)
-    const g = this.add.graphics()
-    g.fillStyle(0x3399ff)
-    g.lineStyle(3, 0xaaddff)
-    g.fillCircle(0, 2, 24)
-    g.strokeCircle(0, 2, 24)
-    const crown = this.add.text(0, -14, '♛', {
-      fontSize: '14px', color: '#ffee00', fontFamily: 'monospace',
-    }).setOrigin(0.5)
-    this.add.container(x, y, [g, crown])
   }
 
   private addSkillItem(

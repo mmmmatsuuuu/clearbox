@@ -3,6 +3,85 @@ import type { BossConfig } from '../scenes/BattleScene'
 export type TilePos = { x: number; y: number }
 export type NpcData = { pos: TilePos; label: string; color: number; dialog: string[] }
 
+// ─── 1F（チュートリアル）──────────────────────────────
+export const COLS_1F = 7
+export const ROWS_1F = 7
+
+export const STAIRS_1F_UP: TilePos = { x: 3, y: 0 }
+export const STATUE_L: TilePos = { x: 1, y: 0 }
+export const STATUE_R: TilePos = { x: 5, y: 0 }
+
+export const NPC_DIALOG_1F = [
+  '老人「……来たか、勇者よ。\nわしは姫の家来じゃ。\n姫は不正を見透かす力で\nこの国を守ってくれていた。」',
+  '老人「そんな姫が魔王に攫われた。\n塔を登り、頂で魔王を倒すのが\nそなたの使命じゃ。\n姫を救ってくれ。」',
+  '老人「道中には魔王の手下がいる。\nこまめにセーブするのじゃぞ。\n……ただし、不正はいかんぞ。」',
+  '老人「これを持ちなさい。\n姫が残した「誠実のリング」じゃ。\nSボタンでステータスを確認できる。\n誠実さを確認できるだろう。」',
+  '老人「わしはこの塔の1階で、\n最初にそなたを迎えた者。\n…それだけは、覚えておいて\nくれよ。」',
+]
+
+export const STATUE_DIALOG = [
+  '「魔王の石像」\n頂の間への道を守護する像。\n頂点に君臨する魔王を模したという。',
+]
+
+export const NPCS_1F: NpcData[] = [
+  { pos: { x: 2, y: 4 }, label: '老', color: 0xaa8844, dialog: NPC_DIALOG_1F },
+]
+
+// ─── 2F（uint8 / 16進数の基本）─────────────────────────
+export const COLS_2F = 16
+export const ROWS_2F = 16
+
+export const STAIRS_2F_UP: TilePos = { x: 7, y: 0 }
+export const STAIRS_2F_DOWN: TilePos = { x: 7, y: 15 }
+export const BOSS_2F_POS: TilePos = { x: 7, y: 1 }
+export const SKILL_2F_POS: TilePos = { x: 15, y: 5 }
+
+export const WALLS_2F: TilePos[] = [
+  { x: 6, y: 0 }, { x: 8, y: 0 },
+  { x: 0, y: 2 }, { x: 1, y: 2 }, { x: 2, y: 2 }, { x: 3, y: 2 },
+  { x: 0, y: 3 }, { x: 0, y: 4 },
+  { x: 0, y: 10 }, { x: 1, y: 10 }, { x: 2, y: 10 }, { x: 3, y: 10 }, { x: 4, y: 10 },
+  { x: 11, y: 10 }, { x: 12, y: 10 }, { x: 13, y: 10 }, { x: 14, y: 10 }, { x: 15, y: 10 },
+  { x: 10, y: 2 }, { x: 11, y: 2 }, { x: 12, y: 2 }, { x: 13, y: 2 },
+  { x: 10, y: 3 }, { x: 13, y: 3 },
+  { x: 10, y: 4 }, { x: 13, y: 4 },
+  { x: 10, y: 5 }, { x: 11, y: 5 }, { x: 12, y: 5 }, { x: 13, y: 5 },
+  { x: 0, y: 6 }, { x: 1, y: 6 },
+  { x: 0, y: 7 }, { x: 0, y: 8 }, { x: 0, y: 9 },
+  { x: 14, y: 6 }, { x: 15, y: 6 },
+  { x: 15, y: 7 }, { x: 15, y: 8 }, { x: 15, y: 9 },
+]
+
+export const NPCS_2F: NpcData[] = [
+  {
+    pos: { x: 4, y: 13 }, label: '人', color: 0x447744,
+    dialog: ['ここのボスは粘り強いらしいぞ！頑張れよ！'],
+  },
+  {
+    pos: { x: 6, y: 8 }, label: '人', color: 0x447744,
+    dialog: ['おまえそんなHPで大丈夫か？'],
+  },
+  {
+    pos: { x: 0, y: 0 }, label: '人', color: 0x447744,
+    dialog: [
+      'ボスに勝てない？\nもうセーブデータをいじるしか\n無いよな？',
+      'どこをいじればいいかって？\nそれは自分で考えろ！',
+    ],
+  },
+]
+
+export const KING_SLIME: BossConfig = {
+  name: 'キングスライム',
+  maxHp: 40,
+  attack: 3,
+  healThreshold: 10,
+  cheatHpLimit: 255,
+  defeatSlot: 0,
+  defeatCode: 0x7C,
+  visual: { bodyColor: 0x3399ff, strokeColor: 0xaaddff, mark: '♛', markColor: '#ffee00' },
+  returnScene: 'GameScene',
+}
+
 // ─── 3F（int8 / 符号付き整数）──────────────────────────
 export const COLS_3F = 16
 export const ROWS_3F = 16
