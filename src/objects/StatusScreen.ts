@@ -116,7 +116,7 @@ export class StatusScreen {
 
     this.descText = this.scene.add.text(16, divY + 12, '', {
       fontSize: '12px', color: '#cccccc', fontFamily: 'monospace',
-      wordWrap: { width: PW - 32 },
+      wordWrap: { width: PW - 32, useAdvancedWrap: true },
       maxLines: 3,
     })
 
