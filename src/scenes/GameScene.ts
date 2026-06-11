@@ -83,7 +83,7 @@ const KING_SLIME: BossConfig = {
   healThreshold: 10,
   cheatHpLimit: 255,
   defeatSlot: 0,
-  defeatCode: 0x01,
+  defeatCode: 0x7C,
   returnScene: 'GameScene',
 }
 
@@ -123,7 +123,6 @@ export class GameScene extends Phaser.Scene {
   private wallSet = new Set<string>()
   private secretStairsRevealed = false
   private secretStairsContainer?: Phaser.GameObjects.Container
-  private secretGateNotified = false
   private bossPos: { x: number; y: number } | null = null
   private bossConfig: BossConfig | null = null
   private skillItems: SkillItem[] = []
@@ -142,7 +141,6 @@ export class GameScene extends Phaser.Scene {
     }
     this.transitioning = false
     this.secretStairsRevealed = false
-    this.secretGateNotified = false
     this.statues = []
     this.npcs = []
     this.wallSet = new Set()
@@ -664,17 +662,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.secretStairsRevealed && tx === STATUE_R.x && ty === STATUE_R.y) {
-      if (SaveManager.state.bossDefeats[4] === 0) {
-        if (!this.secretGateNotified) {
-          this.secretGateNotified = true
-          this.dialog.show(['階段は不思議な力で\n封じられている…。\n（塔の頂から強い気配を感じる）'])
-        }
-        return
-      }
       this.stairTo(STAIRS_M1F_UP.x, STAIRS_M1F_UP.y - 1, -1)
-      return
     }
-    this.secretGateNotified = false
   }
 
   private checkTriggers2F() {
