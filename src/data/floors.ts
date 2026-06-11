@@ -171,6 +171,7 @@ export const NPCS_TOP: NpcData[] = [
     dialog: [
       'うう…魔王には敵わなかった…。\nやつは姫様の力で、\nセーブデータの誠実さを\n見抜いてくる…。',
       '誠実のリングの値は、HP と\nスキルの全6バイトの XOR だと\n姫様が言っていた…。\n書き換えたなら、リングも…うう…',
+      'やつの一撃は 2000 を超える…。\nHP の2バイトを、限界まで\n使い切るしかない…。',
     ],
   },
 ]
@@ -183,8 +184,8 @@ export const PRINCESS_DIALOG = [
 
 export const MAOU: BossConfig = {
   name: '魔王',
-  maxHp: 600,
-  attack: 150,
+  maxHp: 3000,
+  attack: 2000,
   regenPerTurn: 100,
   ringCheck: true,
   grantMegido: true,
@@ -219,16 +220,22 @@ export const NPCS_M1F: NpcData[] = [
       'メギドの真の威力は、\nセーブデータの RV 領域…\nRVx16〜x19 の4バイトに\n封じられている。',
       'ただの整数ではないぞ。\n符号1・指数8・仮数23ビット。\nfloat32 の理で刻まれている。',
       '250 はこう刻まれる…\n00 00 7A 43。\n指数を増やせば、力は倍々に\n膨れ上がるだろう。',
+      'だが心せよ。カオスは\n受けた痛みをそのまま返す\n「混沌の鏡」を持つ。',
+      '混沌を超え、なお己が器に\n収まる力…。過ぎたる力は\n身を滅ぼすぞ。',
     ],
   },
 ]
 
 export const CHAOS: BossConfig = {
   name: 'カオス',
-  maxHp: 4000,
-  attack: 250,
-  regenPerTurn: 300,
-  introLines: ['カオス「……混沌ニ、\n終ワリハ無イ……」'],
+  maxHp: 50000,
+  attack: 500,
+  regenPerTurn: 500,
+  reflectDamage: true,
+  introLines: [
+    'カオス「……混沌ニ、\n終ワリハ無イ……」',
+    'カオス「我ハ混沌ノ鏡。\n受ケタ痛ミハ、ソノママ\n汝ニ還ル……」',
+  ],
   winLines: [
     'カオス「……見事ダ……\n混沌ハ、誠実ナ光ニ\n還ル……」',
     'すべての謎を解き明かした！\n―― 真エンディング ――\nおめでとう！',

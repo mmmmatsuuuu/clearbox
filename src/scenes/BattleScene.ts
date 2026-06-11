@@ -17,6 +17,7 @@ export type BossConfig = {
   healThreshold?: number
   regenPerTurn?: number
   cheatHpLimit?: number
+  reflectDamage?: boolean
   ringCheck?: boolean
   introLines?: string[]
   winLines?: string[]
@@ -301,16 +302,35 @@ export class BattleScene extends Phaser.Scene {
     this.bossHp = Math.max(0, this.bossHp - dmg)
     this.bossHpText.setText(`HP: ${this.bossHp}`)
 
+    const msgs: string[] = [`${dmg}のダメージを与えた！`]
+
+    if (this.boss.reflectDamage) {
+      const wasValid = SaveManager.isRingValid()
+      SaveManager.state.hp = Math.max(0, SaveManager.state.hp - dmg)
+      if (wasValid) SaveManager.updateRing()
+      this.heroHpText.setText(`HP: ${SaveManager.state.hp}`)
+      msgs.push(`混沌の鏡が輝く…！\n${dmg}のダメージが\nそのまま跳ね返ってきた！`)
+
+      if (SaveManager.state.hp <= 0) {
+        this.phase = 'result'
+        this.showMsgs(
+          [...msgs, '自らの力に飲み込まれた…\n力尽きた...'],
+          () => { SaveManager.reset(); this.scene.start('TitleScene') },
+        )
+        return
+      }
+    }
+
     if (this.bossHp <= 0) {
       this.phase = 'result'
       this.showMsgs(
-        [`${this.boss.name}を倒した！`, ...(this.boss.winLines ?? [])],
+        [...msgs, `${this.boss.name}を倒した！`, ...(this.boss.winLines ?? [])],
         () => this.onWin(),
       )
       return
     }
 
-    this.showMsg(`${dmg}のダメージを与えた！`, () => this.enemyTurn())
+    this.showMsgs(msgs, () => this.enemyTurn())
   }
 
   private playerDefend() {
