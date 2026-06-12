@@ -1,7 +1,13 @@
 import type { BossConfig } from '../scenes/BattleScene'
 
 export type TilePos = { x: number; y: number }
-export type NpcData = { pos: TilePos; label: string; color: number; dialog: string[] }
+export type NpcData = {
+  pos: TilePos
+  label: string
+  color: number
+  dialog: string[]
+  dialogAfterWin?: string[]
+}
 
 // ─── 1F（チュートリアル）──────────────────────────────
 export const COLS_1F = 7
@@ -24,7 +30,14 @@ export const STATUE_DIALOG = [
 ]
 
 export const NPCS_1F: NpcData[] = [
-  { pos: { x: 2, y: 4 }, label: '老', color: 0xaa8844, dialog: NPC_DIALOG_1F },
+  {
+    pos: { x: 2, y: 4 }, label: '老', color: 0xaa8844, dialog: NPC_DIALOG_1F,
+    dialogAfterWin: [
+      '老人「おお…魔王を倒し、\n姫を救い出したのじゃな！\nよくやってくれた、勇者よ。」',
+      '老人「じゃが、この塔の地下には\nまだ何かが眠っておるという。\n気になるなら、あの像を\n調べてみるのじゃ。」',
+      '老人「わしはこの塔の1階で、\n最初にそなたを迎えた者。\n…それだけは、忘れんで\nくれよ。」',
+    ],
+  },
 ]
 
 // ─── 2F（uint8 / 16進数の基本）─────────────────────────
@@ -56,16 +69,26 @@ export const NPCS_2F: NpcData[] = [
   {
     pos: { x: 4, y: 13 }, label: '人', color: 0x447744,
     dialog: ['ここのボスは粘り強いらしいぞ！頑張れよ！'],
+    dialogAfterWin: [
+      'あのしぶといスライムを\n倒しちまったのか！\n上へ続く階段も開いたな。',
+    ],
   },
   {
     pos: { x: 6, y: 8 }, label: '人', color: 0x447744,
     dialog: ['おまえそんなHPで大丈夫か？'],
+    dialogAfterWin: [
+      'ボスを倒しちまうとは…。\nその HP、いったいどうやって\n鍛えたんだ？',
+    ],
   },
   {
     pos: { x: 0, y: 0 }, label: '人', color: 0x447744,
     dialog: [
       'ボスに勝てない？\nもうセーブデータをいじるしか\n無いよな？',
       'どこをいじればいいかって？\nそれは自分で考えろ！',
+    ],
+    dialogAfterWin: [
+      'もう倒したのか。\nどこをいじればいいか、\n自分で考えたみたいだな。',
+      'その調子だ。上の階でも\nその頭を使うんだぞ！',
     ],
   },
 ]
@@ -107,12 +130,19 @@ export const NPCS_3F: NpcData[] = [
     dialog: [
       '西の壁の向こうに、何か\n光るものが見えるんだ。\nだが、どう歩いても\nたどり着けない…。',
     ],
+    dialogAfterWin: [
+      'ゴーレムを崩したんだって！？\nもしかして、西の壁の向こうの\n光るものを手に入れたのか…？',
+    ],
   },
   {
     pos: { x: 11, y: 7 }, label: '人', color: 0x774444,
     dialog: [
       'セーブデータには勇者の座標\nCX・CY が刻まれている。\n符号付きの1バイト…\nint8 というやつじゃ。',
       'int8 では 0xFF は 255 ではない。\nさて、いくつになるかのう？\n…ちなみに、わしのコードは\n0x32 じゃ。',
+    ],
+    dialogAfterWin: [
+      'ゴーレム撃破、お見事じゃ。\n符号付き整数を\n使いこなしたようじゃの。',
+      'わしのコードは 0x32。\nそれも忘れんでくれよ。',
     ],
   },
 ]
@@ -152,11 +182,18 @@ export const NPCS_4F: NpcData[] = [
       'ここのボスは化け物だ。\nHP255 の勇者が挑んで\n返り討ちにあったらしい…。\n255 が限界？ 本当にそうか？',
       'あ、俺のコードは 0x41 な。',
     ],
+    dialogAfterWin: [
+      'あの化け物を倒したのか！\nつまり、255 の壁を\n越えたってことだよな…。',
+      '俺のコードは 0x41。\n覚えておいてくれよな。',
+    ],
   },
   {
     pos: { x: 3, y: 6 }, label: '人', color: 0x447777,
     dialog: [
       'HP の記録には2バイト\n使われているらしいぜ。\nリトルエンディアン…\n下位の隣は 256 の位だ。',
+    ],
+    dialogAfterWin: [
+      'デュラハンを倒したか。\n2バイト目の意味に\n気づいたみたいだな。',
     ],
   },
 ]
@@ -196,12 +233,20 @@ export const NPCS_5F: NpcData[] = [
       'この塔の住人と魔物には\nみんなコードが振られている。\n倒した魔物のコードは\nセーブデータに記録されるはずだ。',
       'ちなみにわしのコードは 0x51。\n5階の1人目だからな。',
     ],
+    dialogAfterWin: [
+      'ドラゴンを倒したか！\n撃破のコードはセーブデータに\n刻まれたはずだ。確認してみろ。',
+      'わしのコードは 0x51。\n5階の1人目だからな。',
+    ],
   },
   {
     pos: { x: 3, y: 8 }, label: '人', color: 0x777744,
     dialog: [
       'コードの仕組みは単純よ。\n上の桁が「階」、\n下の桁が「その階での順番」。\n私は5階の2人目で 0x52。',
       '…そういえば、1階で最初に\n出会った人は誰だったかしら？',
+    ],
+    dialogAfterWin: [
+      'すごいわね、あのドラゴンを\n倒しちゃうなんて。',
+      '上で待つのは魔王よ。\n誠実のリングが濁ったままじゃ\n勝負にならないって噂…。',
     ],
   },
 ]
@@ -251,6 +296,10 @@ export const NPCS_TOP: NpcData[] = [
       'うう…魔王には敵わなかった…。\nやつは姫様の力で、\nセーブデータの誠実さを\n見抜いてくる…。',
       '誠実のリングの値は、HP と\nスキルの全6バイトの XOR だと\n姫様が言っていた…。\n書き換えたなら、リングも…うう…',
       'やつの一撃は 2000 を超える…。\nHP の2バイトを、限界まで\n使い切るしかない…。',
+    ],
+    dialogAfterWin: [
+      '魔王を…倒したのか…！\nありがとう、勇者よ…。',
+      '姫様が解放されたはずだ。\n声をかけてやってくれ。',
     ],
   },
 ]
@@ -311,6 +360,7 @@ export const CHAOS: BossConfig = {
   attack: 500,
   regenPerTurn: 500,
   reflectDamage: true,
+  clearOnWin: true,
   introLines: [
     'カオス「……混沌ニ、\n終ワリハ無イ……」',
     'カオス「我ハ混沌ノ鏡。\n受ケタ痛ミハ、ソノママ\n汝ニ還ル……」',

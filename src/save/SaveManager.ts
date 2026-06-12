@@ -131,6 +131,8 @@ function parseHexText(text: string): number[] | null {
   return bytes
 }
 
+export type LoadResult = 'loaded' | 'cancelled' | 'invalid'
+
 export const SaveManager = {
   state: cloneDefault(),
 
@@ -150,23 +152,24 @@ export const SaveManager = {
     URL.revokeObjectURL(url)
   },
 
-  load(): Promise<boolean> {
+  load(): Promise<LoadResult> {
     return new Promise(resolve => {
       const input = document.createElement('input')
       input.type = 'file'
       input.accept = '.txt'
+      input.oncancel = () => resolve('cancelled')
       input.onchange = async () => {
         const file = input.files?.[0]
-        if (!file) { resolve(false); return }
+        if (!file) { resolve('cancelled'); return }
         try {
           const bytes = parseHexText(await file.text())
-          if (!bytes) { resolve(false); return }
+          if (!bytes) { resolve('invalid'); return }
           const state = deserialize(bytes)
-          if (!state) { resolve(false); return }
+          if (!state) { resolve('invalid'); return }
           this.state = state
-          resolve(true)
+          resolve('loaded')
         } catch {
-          resolve(false)
+          resolve('invalid')
         }
       }
       input.click()
