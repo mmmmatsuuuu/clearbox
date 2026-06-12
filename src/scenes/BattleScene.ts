@@ -19,6 +19,7 @@ export type BossConfig = {
   cheatHpLimit?: number
   reflectDamage?: boolean
   ringCheck?: boolean
+  clearOnWin?: boolean
   introLines?: string[]
   winLines?: string[]
   grantMegido?: boolean
@@ -69,6 +70,9 @@ export class BattleScene extends Phaser.Scene {
   private menuTexts: Phaser.GameObjects.Text[] = []
   private menuCursorText!: Phaser.GameObjects.Text
   private menuDivider!: Phaser.GameObjects.Rectangle
+  private enemySprite!: Phaser.GameObjects.Container
+  private victoryWindow!: Phaser.GameObjects.Container
+  private victoryCallback?: () => void
 
   constructor() {
     super({ key: 'BattleScene' })
@@ -88,13 +92,13 @@ export class BattleScene extends Phaser.Scene {
     this.createStatusTexts()
     this.dialog = new DialogBox(this, 4, ACTION_Y, W - 8, H - ACTION_Y)
     this.createActionMenu()
+    this.createVictoryWindow()
     this.setupInput()
 
     if (this.boss.cheatHpLimit !== undefined && SaveManager.state.hp > this.boss.cheatHpLimit) {
-      this.showMsg(
+      this.gameOver([
         'そなたの生命力…あり得ぬ数値だ。\n駆け出しの勇者がそれほどの力を\n持てるはずがない。リセットだ〜',
-        () => { SaveManager.reset(); this.scene.start('TitleScene') },
-      )
+      ])
       return
     }
 
@@ -144,11 +148,12 @@ export class BattleScene extends Phaser.Scene {
     const eg = this.add.graphics()
     eg.fillStyle(visual.bodyColor)
     eg.lineStyle(3, visual.strokeColor)
-    eg.fillCircle(76, 92, 38)
-    eg.strokeCircle(76, 92, 38)
-    this.add.text(76, 63, visual.mark, {
+    eg.fillCircle(0, 29, 38)
+    eg.strokeCircle(0, 29, 38)
+    const mark = this.add.text(0, 0, visual.mark, {
       fontSize: '18px', color: visual.markColor, fontFamily: 'monospace',
     }).setOrigin(0.5)
+    this.enemySprite = this.add.container(76, 63, [eg, mark])
 
     // 味方ビジュアル（右下エリア）
     const pg = this.add.graphics()
@@ -203,6 +208,37 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
+  private createVictoryWindow() {
+    const vw = 264
+    const vh = 92
+    const bg = this.add.rectangle(0, 0, vw, vh, 0x221a00, 0.95)
+      .setStrokeStyle(3, 0xffcc33)
+    const title = this.add.text(0, -26, '勝利！', {
+      fontSize: '18px', color: '#ffdd55', fontFamily: 'monospace',
+    }).setOrigin(0.5)
+    const body = this.add.text(0, 8, '撃破の刻印が\nセーブデータに刻まれた。', {
+      fontSize: '12px', color: '#ffffff', fontFamily: 'monospace', align: 'center',
+    }).setOrigin(0.5)
+    const hint = this.add.text(vw / 2 - 8, vh / 2 - 4, 'Z で閉じる', {
+      fontSize: '10px', color: '#bb9955', fontFamily: 'monospace',
+    }).setOrigin(1, 1)
+    this.victoryWindow = this.add.container(W / 2, 104, [bg, title, body, hint])
+      .setDepth(120)
+      .setVisible(false)
+  }
+
+  private showVictoryWindow(onClose: () => void) {
+    this.victoryCallback = onClose
+    this.victoryWindow.setVisible(true)
+  }
+
+  private closeVictoryWindow() {
+    this.victoryWindow.setVisible(false)
+    const cb = this.victoryCallback
+    this.victoryCallback = undefined
+    cb?.()
+  }
+
   private skillDamage(code: number): number {
     if (code === MEGIDO_CODE) return Math.floor(SaveManager.state.megidoPower)
     return getSkillPower(code)
@@ -251,6 +287,10 @@ export class BattleScene extends Phaser.Scene {
 
   private setupInput() {
     this.input.keyboard!.on('keydown', (e: KeyboardEvent) => {
+      if (this.victoryWindow.visible) {
+        if (e.code === 'KeyZ') this.closeVictoryWindow()
+        return
+      }
       if (this.dialog.isVisible) {
         if (e.code === 'KeyZ') this.dialog.advance()
         return
@@ -312,21 +352,14 @@ export class BattleScene extends Phaser.Scene {
       msgs.push(`混沌の鏡が輝く…！\n${dmg}のダメージが\nそのまま跳ね返ってきた！`)
 
       if (SaveManager.state.hp <= 0) {
-        this.phase = 'result'
-        this.showMsgs(
-          [...msgs, '自らの力に飲み込まれた…\n力尽きた...'],
-          () => { SaveManager.reset(); this.scene.start('TitleScene') },
-        )
+        this.gameOver([...msgs, '自らの力に飲み込まれた…\n力尽きた...'])
         return
       }
     }
 
     if (this.bossHp <= 0) {
       this.phase = 'result'
-      this.showMsgs(
-        [...msgs, `${this.boss.name}を倒した！`, ...(this.boss.winLines ?? [])],
-        () => this.onWin(),
-      )
+      this.showMsgs(msgs, () => this.playWinSequence())
       return
     }
 
@@ -375,11 +408,7 @@ export class BattleScene extends Phaser.Scene {
     this.heroHpText.setText(`HP: ${SaveManager.state.hp}`)
 
     if (SaveManager.state.hp <= 0) {
-      this.phase = 'result'
-      this.showMsgs([...msgs, '力尽きた...'], () => {
-        SaveManager.reset()
-        this.scene.start('TitleScene')
-      })
+      this.gameOver([...msgs, '力尽きた...'])
       return
     }
 
@@ -389,6 +418,36 @@ export class BattleScene extends Phaser.Scene {
     this.showMsgs(msgs, () => this.showMenu())
   }
 
+  private gameOver(msgs: string[]) {
+    this.phase = 'result'
+    this.showMsgs(msgs, () => {
+      SaveManager.reset()
+      this.cameras.main.fadeOut(700, 120, 0, 0)
+      this.cameras.main.once(
+        Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
+        () => this.scene.start('GameOverScene'),
+      )
+    })
+  }
+
+  private playWinSequence() {
+    this.cameras.main.flash(200, 255, 255, 255)
+    this.tweens.add({
+      targets: this.enemySprite,
+      alpha: 0,
+      duration: 90,
+      yoyo: true,
+      repeat: 3,
+      onComplete: () => {
+        this.enemySprite.setVisible(false)
+        this.showMsgs(
+          [`${this.boss.name}を倒した！`, ...(this.boss.winLines ?? [])],
+          () => this.onWin(),
+        )
+      },
+    })
+  }
+
   private onWin() {
     if (this.boss.defeatSlot !== undefined && this.boss.defeatCode !== undefined) {
       SaveManager.state.bossDefeats[this.boss.defeatSlot] = this.boss.defeatCode
@@ -396,6 +455,18 @@ export class BattleScene extends Phaser.Scene {
     if (this.boss.grantMegido) {
       SaveManager.state.megidoPower = 250
     }
-    this.scene.start(this.boss.returnScene)
+
+    if (this.boss.clearOnWin) {
+      this.cameras.main.fadeOut(900, 0, 0, 0)
+      this.cameras.main.once(
+        Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
+        () => this.scene.start('ClearScene'),
+      )
+      return
+    }
+
+    this.showVictoryWindow(() => {
+      this.scene.start(this.boss.returnScene, { victorySlot: this.boss.defeatSlot })
+    })
   }
 }

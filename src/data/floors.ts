@@ -311,6 +311,7 @@ export const CHAOS: BossConfig = {
   attack: 500,
   regenPerTurn: 500,
   reflectDamage: true,
+  clearOnWin: true,
   introLines: [
     'カオス「……混沌ニ、\n終ワリハ無イ……」',
     'カオス「我ハ混沌ノ鏡。\n受ケタ痛ミハ、ソノママ\n汝ニ還ル……」',

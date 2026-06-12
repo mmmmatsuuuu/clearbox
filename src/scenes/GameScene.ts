@@ -40,6 +40,7 @@ type SkillItem = {
   teleportTo?: { x: number; y: number }
   consumed?: boolean
 }
+type SceneFlowData = { victorySlot?: number; loadedMessage?: boolean }
 
 // ─── Scene ────────────────────────────────────────────
 export class GameScene extends Phaser.Scene {
@@ -65,12 +66,14 @@ export class GameScene extends Phaser.Scene {
   private bossPos: { x: number; y: number } | null = null
   private bossConfig: BossConfig | null = null
   private skillItems: SkillItem[] = []
+  private lockedStairNotified = false
+  private hiddenRoomNotified = false
 
   constructor() {
     super({ key: 'GameScene' })
   }
 
-  create() {
+  create(data?: SceneFlowData) {
     let z = SaveManager.state.heroZ
     if (![1, 2, 3, 4, 5, 6, -1].includes(z)) {
       SaveManager.state.heroZ = 1
@@ -86,6 +89,8 @@ export class GameScene extends Phaser.Scene {
     this.bossPos = null
     this.bossConfig = null
     this.skillItems = []
+    this.lockedStairNotified = false
+    this.hiddenRoomNotified = false
     this.minCol = 0
     this.movementLocked = z === 1 && !introCompleted
 
@@ -123,6 +128,17 @@ export class GameScene extends Phaser.Scene {
         introCompleted = true
         this.movementLocked = false
       })
+      return
+    }
+
+    if (data?.loadedMessage) {
+      this.dialog.show(['ロードしました。'])
+    } else if (data?.victorySlot !== undefined) {
+      this.dialog.show([
+        data.victorySlot === 4
+          ? '姫に話しかけてみよう。'
+          : '上へ続く階段が開いた！',
+      ])
     }
   }
 
@@ -449,6 +465,8 @@ export class GameScene extends Phaser.Scene {
         (nx !== STATUE_R.x || ny !== STATUE_R.y)) {
       this.secretStairsRevealed = true
       this.secretStairsContainer?.setVisible(true)
+      this.cameras.main.shake(300, 0.008)
+      this.dialog.show(['ゴゴゴ…\nどこかで床の開く音がした。'])
     }
     return true
   }
@@ -499,6 +517,7 @@ export class GameScene extends Phaser.Scene {
 
   private checkTriggers() {
     if (this.dialog.isVisible || this.statusScreen.isVisible || this.movementLocked || this.transitioning) return
+    if (SaveManager.state.heroZ === 3 && this.checkHiddenRoomEntry()) return
     if (this.checkBossCollision()) return
     if (this.checkSkillPickups()) return
 
@@ -517,6 +536,30 @@ export class GameScene extends Phaser.Scene {
       tx: Math.floor(this.heroPixelX / TILE),
       ty: Math.floor(this.heroPixelY / TILE),
     }
+  }
+
+  private checkHiddenRoomEntry(): boolean {
+    const { tx } = this.heroTile()
+    if (tx > -1) {
+      this.hiddenRoomNotified = false
+      return false
+    }
+    if (this.hiddenRoomNotified) return false
+    this.hiddenRoomNotified = true
+    this.cameras.main.flash(300, 255, 255, 180)
+    this.dialog.show(['壁の向こう側に踏み込んだ…！'])
+    return true
+  }
+
+  private notifyLockedStair(stair: { x: number; y: number }) {
+    const { tx, ty } = this.heroTile()
+    if (tx !== stair.x || ty !== stair.y) {
+      this.lockedStairNotified = false
+      return
+    }
+    if (this.lockedStairNotified) return
+    this.lockedStairNotified = true
+    this.dialog.show(['階段は固く閉ざされている。\nこの階の主を倒す\n必要がありそうだ。'])
   }
 
   private stairTo(x: number, y: number, z: number) {
@@ -591,6 +634,7 @@ export class GameScene extends Phaser.Scene {
       this.stairTo(STAIRS_3F_DOWN.x, STAIRS_3F_DOWN.y - 1, 3)
       return
     }
+    if (SaveManager.state.bossDefeats[0] === 0) this.notifyLockedStair(STAIRS_2F_UP)
 
     if (tx === STAIRS_2F_DOWN.x && ty === STAIRS_2F_DOWN.y) {
       this.stairTo(STAIRS_1F_UP.x, STAIRS_1F_UP.y + 1, 1)
@@ -605,6 +649,7 @@ export class GameScene extends Phaser.Scene {
       this.stairTo(STAIRS_4F_DOWN.x, STAIRS_4F_DOWN.y - 1, 4)
       return
     }
+    if (SaveManager.state.bossDefeats[1] === 0) this.notifyLockedStair(STAIRS_3F_UP)
 
     if (tx === STAIRS_3F_DOWN.x && ty === STAIRS_3F_DOWN.y) {
       this.stairTo(STAIRS_2F_UP.x, STAIRS_2F_UP.y + 1, 2)
@@ -619,6 +664,7 @@ export class GameScene extends Phaser.Scene {
       this.stairTo(STAIRS_5F_DOWN.x, STAIRS_5F_DOWN.y - 1, 5)
       return
     }
+    if (SaveManager.state.bossDefeats[2] === 0) this.notifyLockedStair(STAIRS_4F_UP)
 
     if (tx === STAIRS_4F_DOWN.x && ty === STAIRS_4F_DOWN.y) {
       this.stairTo(STAIRS_3F_UP.x, STAIRS_3F_UP.y + 1, 3)
@@ -633,6 +679,7 @@ export class GameScene extends Phaser.Scene {
       this.stairTo(STAIRS_TOP_DOWN.x, STAIRS_TOP_DOWN.y - 1, 6)
       return
     }
+    if (SaveManager.state.bossDefeats[3] === 0) this.notifyLockedStair(STAIRS_5F_UP)
 
     if (tx === STAIRS_5F_DOWN.x && ty === STAIRS_5F_DOWN.y) {
       this.stairTo(STAIRS_4F_UP.x, STAIRS_4F_UP.y + 1, 4)
@@ -709,18 +756,24 @@ export class GameScene extends Phaser.Scene {
     const onSave = () => {
       this.syncState()
       SaveManager.save()
+      this.dialog.show(['セーブしました。\nsave_data.txt を保存した。'])
     }
 
     const onLoad = async () => {
       const prevZ = SaveManager.state.heroZ
-      const ok = await SaveManager.load()
-      if (!ok) return
+      const result = await SaveManager.load()
+      if (result === 'cancelled') return
+      if (result === 'invalid') {
+        this.dialog.show(['セーブデータが\n読み込めなかった。\nファイルの形式を確認しよう。'])
+        return
+      }
       const s = SaveManager.state
-      if (s.heroZ !== prevZ) { this.scene.restart(); return }
+      if (s.heroZ !== prevZ) { this.scene.restart({ loadedMessage: true }); return }
       this.heroPixelX = s.heroX * TILE + TILE / 2
       this.heroPixelY = s.heroY * TILE + TILE / 2
       this.heroContainer.setPosition(this.heroPixelX, this.heroPixelY)
       this.hpText.setText(`HP: ${s.hp}`)
+      this.dialog.show(['ロードしました。'])
     }
 
     saveBtn?.addEventListener('click', onSave)
