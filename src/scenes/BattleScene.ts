@@ -104,12 +104,14 @@ export class BattleScene extends Phaser.Scene {
 
     // 敵ビジュアル（左上エリア）
     const eg = this.add.graphics()
-    eg.fillStyle(0x2266cc)
-    eg.lineStyle(3, 0x88ccff)
+    eg.fillStyle(0x2a3a4d)
+    eg.lineStyle(3, 0x6688aa)
     eg.fillCircle(76, 92, 38)
     eg.strokeCircle(76, 92, 38)
+    eg.fillStyle(0x55708c, 0.6)
+    eg.fillCircle(63, 80, 11)
     this.add.text(76, 63, '♛', {
-      fontSize: '18px', color: '#ffee00', fontFamily: 'monospace',
+      fontSize: '18px', color: '#c9a227', fontFamily: 'monospace',
     }).setOrigin(0.5)
 
     // 味方ビジュアル（右下エリア）

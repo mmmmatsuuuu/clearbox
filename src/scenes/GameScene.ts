@@ -16,14 +16,14 @@ const STATUE_R        = { x: 5, y: 0 }
 const STAIRS_1F_UP    = { x: 3, y: 0 }
 
 const NPC_DIALOG_1F = [
-  '老人「……来たか、勇者よ。\nわしは姫の家来じゃ。\n姫は不正を見透かす力で\nこの国を守ってくれていた。」',
-  '老人「そんな姫が魔王に攫われた。\n塔を登り、頂で魔王を倒すのが\nそなたの使命じゃ。\n姫を救ってくれ。」',
-  '老人「道中には魔王の手下がいる。\nこまめにセーブするのじゃぞ。\n……ただし、不正はいかんぞ。」',
-  '老人「これを持ちなさい。\n姫が残した「誠実のリング」じゃ。\nSボタンでステータスを確認できる。\n誠実さを確認できるだろう。」',
+  '老技師「……来たか、勇者よ。\nわしは姫に仕える技師じゃ。\n姫は不正を見抜く力で\nこの大機関塔を守ってくれていた。」',
+  '老技師「そんな姫が機械王に攫われた。\n塔を登り、頂で機械王を倒すのが\nそなたの使命じゃ。\n姫を救ってくれ。」',
+  '老技師「道中には機械の魔物がおる。\nこまめにセーブするのじゃぞ。\n……ただし、不正はいかんぞ。」',
+  '老技師「これを持ちなさい。\n姫が残した「誠実のリング」じゃ。\nSボタンでステータスを確認できる。\n誠実さを確認できるだろう。」',
 ]
 
 const STATUE_DIALOG = [
-  '「魔王の石像」\n頂の間への道を守護する像。\n頂点に君臨する魔王を模したという。',
+  '「機械王のからくり像」\n頂の間への道を守護する真鍮の像。\n頂点に君臨する機械王を模したという。',
 ]
 
 // ─── 2F ───────────────────────────────────────────────
@@ -31,7 +31,7 @@ const COLS_2F = 16
 const ROWS_2F = 16
 
 const NPC_2F_DEFS: Array<{ pos: { x: number; y: number }; dialog: string[] }> = [
-  { pos: { x: 4, y: 13 }, dialog: ['ここのボスは粘り強いらしいぞ！頑張れよ！'] },
+  { pos: { x: 4, y: 13 }, dialog: ['ここのボスは油まみれで\n粘り強いらしいぞ！頑張れよ！'] },
   { pos: { x: 6, y: 8  }, dialog: ['おまえそんなHPで大丈夫か？'] },
   { pos: { x: 0, y: 0  }, dialog: [
     'ボスに勝てない？\nもうセーブデータをいじるしか\n無いよな？',
@@ -39,7 +39,7 @@ const NPC_2F_DEFS: Array<{ pos: { x: number; y: number }; dialog: string[] }> = 
   ]},
 ]
 
-const KS_POS         = { x: 7, y: 1 }
+const BOSS_2F_POS    = { x: 7, y: 1 }
 const SKILL_POS      = { x: 15, y: 5 }
 const SKILL_CODE     = getSkillCodeByIndex(1)
 const STAIRS_2F_UP   = { x: 7, y: 0 }
@@ -61,8 +61,8 @@ const WALLS_2F: { x: number; y: number }[] = [
   { x: 15, y: 7 }, { x: 15, y: 8 }, { x: 15, y: 9 },
 ]
 
-const KING_SLIME: BossConfig = {
-  name: 'キングスライム',
+const OIL_SLIME_KING: BossConfig = {
+  name: 'オイルスライム・キング',
   maxHp: 40,
   attack: 3,
   healThreshold: 10,
@@ -173,8 +173,8 @@ export class GameScene extends Phaser.Scene {
     this.drawWalls2F()
     this.drawStair(STAIRS_2F_DOWN, '▼', 0x334422, 0x88dd44, '#88dd44')
 
-    const ksDefeated = SaveManager.state.bossDefeats[0] !== 0
-    if (ksDefeated) {
+    const bossDefeated = SaveManager.state.bossDefeats[0] !== 0
+    if (bossDefeated) {
       this.drawStair(STAIRS_2F_UP, '▲', 0x886622, 0xffdd88, '#ffdd88')
     } else {
       this.drawStair(STAIRS_2F_UP, '▲', 0x444444, 0x666666, '#666666')
@@ -183,9 +183,9 @@ export class GameScene extends Phaser.Scene {
     for (const def of NPC_2F_DEFS) this.drawNpc(def.pos, '人', 0x447744)
     this.npcs = NPC_2F_DEFS.map(d => ({ pos: { ...d.pos }, dialog: d.dialog }))
 
-    if (!ksDefeated) {
-      this.bossPos = { ...KS_POS }
-      this.drawKingSlime()
+    if (!bossDefeated) {
+      this.bossPos = { ...BOSS_2F_POS }
+      this.drawOilSlimeKing()
     }
 
     if (!SaveManager.state.skills.includes(SKILL_CODE)) {
@@ -278,16 +278,18 @@ export class GameScene extends Phaser.Scene {
     this.add.container(x, y, [rect, text])
   }
 
-  private drawKingSlime() {
+  private drawOilSlimeKing() {
     if (!this.bossPos) return
     const { x, y } = this.tileCenter(this.bossPos.x, this.bossPos.y)
     const g = this.add.graphics()
-    g.fillStyle(0x3399ff)
-    g.lineStyle(3, 0xaaddff)
+    g.fillStyle(0x2a3a4d)
+    g.lineStyle(3, 0x6688aa)
     g.fillCircle(0, 2, 24)
     g.strokeCircle(0, 2, 24)
+    g.fillStyle(0x55708c, 0.6)
+    g.fillCircle(-8, -6, 7)
     const crown = this.add.text(0, -14, '♛', {
-      fontSize: '14px', color: '#ffee00', fontFamily: 'monospace',
+      fontSize: '14px', color: '#c9a227', fontFamily: 'monospace',
     }).setOrigin(0.5)
     this.add.container(x, y, [g, crown])
   }
@@ -469,14 +471,14 @@ export class GameScene extends Phaser.Scene {
       if (Math.hypot(this.heroPixelX - bc.x, this.heroPixelY - bc.y) < TILE) {
         this.transitioning = true
         this.syncState()
-        this.scene.start('BattleScene', KING_SLIME)
+        this.scene.start('BattleScene', OIL_SLIME_KING)
         return
       }
     }
 
-    const ksDefeated = SaveManager.state.bossDefeats[0] !== 0
+    const bossDefeated = SaveManager.state.bossDefeats[0] !== 0
 
-    if (ksDefeated && tx === STAIRS_2F_UP.x && ty === STAIRS_2F_UP.y) {
+    if (bossDefeated && tx === STAIRS_2F_UP.x && ty === STAIRS_2F_UP.y) {
       this.transitioning = true
       SaveManager.state.heroX = 3
       SaveManager.state.heroY = 6
