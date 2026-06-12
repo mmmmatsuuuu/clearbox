@@ -171,9 +171,9 @@ export class GameScene extends Phaser.Scene {
     this.drawField(0x1a1a2a, 0x111122)
     this.drawWalls(WALLS_2F, 0x555566, 0x8888aa)
     this.drawStair(STAIRS_2F_DOWN, '▼', 0x334422, 0x88dd44, '#88dd44')
-    this.drawLockableStair(STAIRS_2F_UP, SaveManager.state.bossDefeats[0] !== 0)
+    this.drawLockableStair(STAIRS_2F_UP, this.isBossDefeated(KING_SLIME))
 
-    this.setNpcs(NPCS_2F)
+    this.setNpcs(NPCS_2F, this.isBossDefeated(KING_SLIME))
     this.setupBoss(KING_SLIME, BOSS_2F_POS)
     this.addSkillItem(SKILL_2F_POS, 0x5F, [
       '「防御」を覚えた！\n1ターンだけ相手の攻撃を\n無効化する。\nコード: 0x5F',
@@ -189,9 +189,9 @@ export class GameScene extends Phaser.Scene {
     this.drawField(0x2a1a0a, 0x1a1008)
     this.drawWalls(WALLS_3F, 0x554433, 0x887755)
     this.drawStair(STAIRS_3F_DOWN, '▼', 0x334422, 0x88dd44, '#88dd44')
-    this.drawLockableStair(STAIRS_3F_UP, SaveManager.state.bossDefeats[1] !== 0)
+    this.drawLockableStair(STAIRS_3F_UP, this.isBossDefeated(GOLEM))
 
-    this.setNpcs(NPCS_3F)
+    this.setNpcs(NPCS_3F, this.isBossDefeated(GOLEM))
     this.setupBoss(GOLEM, BOSS_3F_POS)
     this.addSkillItem(HIDDEN_SKILL_POS, 0xA3, [
       'スキル「ファイア」を会得した！\nコード: 0xA3 / 威力: 40',
@@ -207,9 +207,9 @@ export class GameScene extends Phaser.Scene {
     this.drawField(0x10202a, 0x0a141c)
     this.drawWalls(WALLS_4F, 0x445566, 0x7788aa)
     this.drawStair(STAIRS_4F_DOWN, '▼', 0x334422, 0x88dd44, '#88dd44')
-    this.drawLockableStair(STAIRS_4F_UP, SaveManager.state.bossDefeats[2] !== 0)
+    this.drawLockableStair(STAIRS_4F_UP, this.isBossDefeated(DULLAHAN))
 
-    this.setNpcs(NPCS_4F)
+    this.setNpcs(NPCS_4F, this.isBossDefeated(DULLAHAN))
     this.setupBoss(DULLAHAN, BOSS_4F_POS)
     this.addSkillItem(SKILL_4F_POS, 0xC7, [
       'スキル「サンダー」を会得した！\nコード: 0xC7 / 威力: 75',
@@ -224,9 +224,9 @@ export class GameScene extends Phaser.Scene {
     this.drawField(0x202a10, 0x141c0a)
     this.drawWalls(WALLS_5F, 0x556644, 0x88aa66)
     this.drawStair(STAIRS_5F_DOWN, '▼', 0x334422, 0x88dd44, '#88dd44')
-    this.drawLockableStair(STAIRS_5F_UP, SaveManager.state.bossDefeats[3] !== 0)
+    this.drawLockableStair(STAIRS_5F_UP, this.isBossDefeated(DRAGON))
 
-    this.setNpcs(NPCS_5F)
+    this.setNpcs(NPCS_5F, this.isBossDefeated(DRAGON))
     this.drawNpc(SHRINE_POS, '祠', 0x886688)
     this.npcs.push({
       pos: { ...SHRINE_POS },
@@ -246,8 +246,8 @@ export class GameScene extends Phaser.Scene {
     this.drawWalls(WALLS_TOP, 0x663355, 0x995588)
     this.drawStair(STAIRS_TOP_DOWN, '▼', 0x334422, 0x88dd44, '#88dd44')
 
-    this.setNpcs(NPCS_TOP)
-    if (SaveManager.state.bossDefeats[4] === 0) {
+    this.setNpcs(NPCS_TOP, this.isBossDefeated(MAOU))
+    if (!this.isBossDefeated(MAOU)) {
       this.setupBoss(MAOU, BOSS_TOP_POS)
     } else {
       this.drawNpc(PRINCESS_POS, '姫', 0xdd88aa)
@@ -271,14 +271,24 @@ export class GameScene extends Phaser.Scene {
     this.setupBoss(CHAOS, BOSS_M1F_POS)
   }
 
-  private setNpcs(defs: NpcData[]) {
+  private setNpcs(defs: NpcData[], bossDefeated = false) {
     for (const d of defs) this.drawNpc(d.pos, d.label, d.color)
-    this.npcs = defs.map(d => ({ pos: { ...d.pos }, dialog: d.dialog }))
+    this.npcs = defs.map(d => ({
+      pos: { ...d.pos },
+      dialog: bossDefeated && d.dialogAfterWin ? d.dialogAfterWin : d.dialog,
+    }))
+  }
+
+  private isBossDefeated(boss: BossConfig): boolean {
+    return (
+      boss.defeatSlot !== undefined &&
+      boss.defeatCode !== undefined &&
+      SaveManager.state.bossDefeats[boss.defeatSlot] === boss.defeatCode
+    )
   }
 
   private setupBoss(config: BossConfig, pos: { x: number; y: number }) {
-    const slot = config.defeatSlot
-    if (slot !== undefined && SaveManager.state.bossDefeats[slot] !== 0) return
+    if (this.isBossDefeated(config)) return
     this.bossPos = { ...pos }
     this.bossConfig = config
     if (config.visual) this.drawBossMarker(pos, config.visual)
@@ -633,12 +643,12 @@ export class GameScene extends Phaser.Scene {
   private checkTriggers2F() {
     const { tx, ty } = this.heroTile()
 
-    if (SaveManager.state.bossDefeats[0] !== 0 &&
-        tx === STAIRS_2F_UP.x && ty === STAIRS_2F_UP.y) {
+    const defeated = this.isBossDefeated(KING_SLIME)
+    if (defeated && tx === STAIRS_2F_UP.x && ty === STAIRS_2F_UP.y) {
       this.stairTo(STAIRS_3F_DOWN.x, STAIRS_3F_DOWN.y - 1, 3)
       return
     }
-    if (SaveManager.state.bossDefeats[0] === 0) this.notifyLockedStair(STAIRS_2F_UP)
+    if (!defeated) this.notifyLockedStair(STAIRS_2F_UP)
 
     if (tx === STAIRS_2F_DOWN.x && ty === STAIRS_2F_DOWN.y) {
       this.stairTo(STAIRS_1F_UP.x, STAIRS_1F_UP.y + 1, 1)
@@ -648,12 +658,12 @@ export class GameScene extends Phaser.Scene {
   private checkTriggers3F() {
     const { tx, ty } = this.heroTile()
 
-    if (SaveManager.state.bossDefeats[1] !== 0 &&
-        tx === STAIRS_3F_UP.x && ty === STAIRS_3F_UP.y) {
+    const defeated = this.isBossDefeated(GOLEM)
+    if (defeated && tx === STAIRS_3F_UP.x && ty === STAIRS_3F_UP.y) {
       this.stairTo(STAIRS_4F_DOWN.x, STAIRS_4F_DOWN.y - 1, 4)
       return
     }
-    if (SaveManager.state.bossDefeats[1] === 0) this.notifyLockedStair(STAIRS_3F_UP)
+    if (!defeated) this.notifyLockedStair(STAIRS_3F_UP)
 
     if (tx === STAIRS_3F_DOWN.x && ty === STAIRS_3F_DOWN.y) {
       this.stairTo(STAIRS_2F_UP.x, STAIRS_2F_UP.y + 1, 2)
@@ -663,12 +673,12 @@ export class GameScene extends Phaser.Scene {
   private checkTriggers4F() {
     const { tx, ty } = this.heroTile()
 
-    if (SaveManager.state.bossDefeats[2] !== 0 &&
-        tx === STAIRS_4F_UP.x && ty === STAIRS_4F_UP.y) {
+    const defeated = this.isBossDefeated(DULLAHAN)
+    if (defeated && tx === STAIRS_4F_UP.x && ty === STAIRS_4F_UP.y) {
       this.stairTo(STAIRS_5F_DOWN.x, STAIRS_5F_DOWN.y - 1, 5)
       return
     }
-    if (SaveManager.state.bossDefeats[2] === 0) this.notifyLockedStair(STAIRS_4F_UP)
+    if (!defeated) this.notifyLockedStair(STAIRS_4F_UP)
 
     if (tx === STAIRS_4F_DOWN.x && ty === STAIRS_4F_DOWN.y) {
       this.stairTo(STAIRS_3F_UP.x, STAIRS_3F_UP.y + 1, 3)
@@ -678,12 +688,12 @@ export class GameScene extends Phaser.Scene {
   private checkTriggers5F() {
     const { tx, ty } = this.heroTile()
 
-    if (SaveManager.state.bossDefeats[3] !== 0 &&
-        tx === STAIRS_5F_UP.x && ty === STAIRS_5F_UP.y) {
+    const defeated = this.isBossDefeated(DRAGON)
+    if (defeated && tx === STAIRS_5F_UP.x && ty === STAIRS_5F_UP.y) {
       this.stairTo(STAIRS_TOP_DOWN.x, STAIRS_TOP_DOWN.y - 1, 6)
       return
     }
-    if (SaveManager.state.bossDefeats[3] === 0) this.notifyLockedStair(STAIRS_5F_UP)
+    if (!defeated) this.notifyLockedStair(STAIRS_5F_UP)
 
     if (tx === STAIRS_5F_DOWN.x && ty === STAIRS_5F_DOWN.y) {
       this.stairTo(STAIRS_4F_UP.x, STAIRS_4F_UP.y + 1, 4)
