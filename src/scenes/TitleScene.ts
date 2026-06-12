@@ -14,7 +14,7 @@ export class TitleScene extends Phaser.Scene {
       fontFamily: 'monospace',
     }).setOrigin(0.5)
 
-    this.add.text(width / 2, height / 2 - 24, '機械王とメモリ安全の姫', {
+    this.add.text(width / 2, height / 2 - 24, '魔王とメモリ安全の姫', {
       fontSize: '18px',
       color: '#aaddff',
       fontFamily: 'monospace',
