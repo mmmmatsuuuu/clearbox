@@ -160,7 +160,7 @@ export class GameScene extends Phaser.Scene {
     this.drawStair(STAIRS_1F_UP, '▲', 0x886622, 0xffdd88, '#ffdd88')
     this.createSecretStairs()
     this.createStatues()
-    this.setNpcs(NPCS_1F)
+    this.setNpcs(NPCS_1F, this.isBossDefeated(MAOU))
   }
 
   private create2F() {

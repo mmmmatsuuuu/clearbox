@@ -30,7 +30,14 @@ export const STATUE_DIALOG = [
 ]
 
 export const NPCS_1F: NpcData[] = [
-  { pos: { x: 2, y: 4 }, label: '老', color: 0xaa8844, dialog: NPC_DIALOG_1F },
+  {
+    pos: { x: 2, y: 4 }, label: '老', color: 0xaa8844, dialog: NPC_DIALOG_1F,
+    dialogAfterWin: [
+      '老人「おお…魔王を倒し、\n姫を救い出したのじゃな！\nよくやってくれた、勇者よ。」',
+      '老人「じゃが、この塔の地下には\nまだ何かが眠っておるという。\n気になるなら、あの像を\n調べてみるのじゃ。」',
+      '老人「わしはこの塔の1階で、\n最初にそなたを迎えた者。\n…それだけは、忘れんで\nくれよ。」',
+    ],
+  },
 ]
 
 // ─── 2F（uint8 / 16進数の基本）─────────────────────────
