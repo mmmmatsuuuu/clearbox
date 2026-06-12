@@ -14,7 +14,7 @@ const SKILLS: Record<number, SkillDef> = {
   0xC7: { name: 'サンダー', power: 75, effect: '雷で敵に75のダメージを与える' },
   0xE4: { name: '覇王斬', power: 120, effect: '奥義の斬撃で敵に120のダメージを与える' },
   0xD9: { name: 'ホーリー', power: 200, effect: '聖なる光で敵に200のダメージを与える' },
-  [MEGIDO_CODE]: { name: 'メギド', power: 0, effect: '魔王の禁術。真の威力はセーブデータの奥に眠る' },
+  [MEGIDO_CODE]: { name: 'メギド', power: 0, effect: '機械王の禁術。真の威力はセーブデータの奥に眠る' },
 }
 
 const SKILL_CODES = [0xB3, 0x5F, 0xA3, 0xC7, 0xE4, 0xD9, MEGIDO_CODE]

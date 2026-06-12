@@ -105,8 +105,8 @@ export class BattleScene extends Phaser.Scene {
     if (this.boss.ringCheck && !SaveManager.isRingValid()) {
       this.showMsgs(
         [
-          '魔王「誠実のリングが濁っておるぞ。\n貴様、不正をしておるな！」',
-          '魔王「姫の力で見抜けぬとでも\n思うたか。\n元のステータスに戻してくれる！」',
+          '機械王「誠実のリングが\n濁っておるぞ。\n貴様、不正をしておるな！」',
+          '機械王「姫の力で見抜けぬとでも\n思うたか。\n元のステータスに戻してくれる！」',
           '勇者は元のステータスに\n戻されてしまった…！',
         ],
         () => {
@@ -169,7 +169,8 @@ export class BattleScene extends Phaser.Scene {
 
   private createStatusTexts() {
     this.add.text(ES_X + 8, ES_Y + 7, this.boss.name, {
-      fontSize: '14px', color: '#ff8888', fontFamily: 'monospace',
+      fontSize: this.boss.name.length > 9 ? '11px' : '14px',
+      color: '#ff8888', fontFamily: 'monospace',
     })
     this.bossHpText = this.add.text(ES_X + 8, ES_Y + 28, `HP: ${this.bossHp}`, {
       fontSize: '13px', color: '#ffffff', fontFamily: 'monospace',

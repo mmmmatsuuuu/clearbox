@@ -227,7 +227,7 @@ export class GameScene extends Phaser.Scene {
     this.drawLockableStair(STAIRS_5F_UP, this.isBossDefeated(DRAGON))
 
     this.setNpcs(NPCS_5F, this.isBossDefeated(DRAGON))
-    this.drawNpc(SHRINE_POS, '祠', 0x886688)
+    this.drawNpc(SHRINE_POS, '祭', 0x886688)
     this.npcs.push({
       pos: { ...SHRINE_POS },
       dialog: () => SaveManager.state.npcCodes.includes(OLD_MAN_NPC_CODE)

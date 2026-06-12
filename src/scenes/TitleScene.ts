@@ -10,11 +10,11 @@ export class TitleScene extends Phaser.Scene {
 
     this.add.text(width / 2, height / 2 - 70, 'メタクエスト', {
       fontSize: '36px',
-      color: '#ffffff',
+      color: '#c9a227',
       fontFamily: 'monospace',
     }).setOrigin(0.5)
 
-    this.add.text(width / 2, height / 2 - 24, '魔王とメモリ安全の姫', {
+    this.add.text(width / 2, height / 2 - 24, '機械王と技師の姫', {
       fontSize: '18px',
       color: '#aaddff',
       fontFamily: 'monospace',
