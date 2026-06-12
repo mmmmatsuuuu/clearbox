@@ -74,6 +74,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(data?: SceneFlowData) {
+    // restart()/start() はデータ未指定だと前回の settings.data を使い回すため、
+    // 受け取った時点で消費済みにして再表示を防ぐ
+    this.sys.settings.data = {}
+
     let z = SaveManager.state.heroZ
     if (![1, 2, 3, 4, 5, 6, -1].includes(z)) {
       SaveManager.state.heroZ = 1
