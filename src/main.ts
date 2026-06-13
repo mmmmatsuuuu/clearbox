@@ -1,4 +1,5 @@
 import Phaser from 'phaser'
+import { BootScene } from './scenes/BootScene'
 import { TitleScene } from './scenes/TitleScene'
 import { GameScene } from './scenes/GameScene'
 import { BattleScene } from './scenes/BattleScene'
@@ -11,11 +12,12 @@ const config: Phaser.Types.Core.GameConfig = {
   height: 320,
   backgroundColor: '#111111',
   parent: 'game-container',
+  pixelArt: true,
   scale: {
     mode: Phaser.Scale.NONE,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [TitleScene, GameScene, BattleScene, GameOverScene, ClearScene],
+  scene: [BootScene, TitleScene, GameScene, BattleScene, GameOverScene, ClearScene],
 }
 
 new Phaser.Game(config)
