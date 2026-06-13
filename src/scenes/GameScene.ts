@@ -1,6 +1,10 @@
 import Phaser from 'phaser'
 import { SaveManager } from '../save/SaveManager'
 import { DialogBox, type DialogSpeaker } from '../objects/DialogBox'
+import { TILESET } from './BootScene'
+import {
+  FLOOR_THEMES, STAIR_TINTS, STATUE_TINT, TILE_FRAMES, type FloorTheme,
+} from '../data/tiles'
 import { StatusScreen } from '../objects/StatusScreen'
 import type { BossConfig, BossVisual } from './BattleScene'
 import {
@@ -72,6 +76,7 @@ export class GameScene extends Phaser.Scene {
   private skillItems: SkillItem[] = []
   private lockedStairNotified = false
   private hiddenRoomNotified = false
+  private floorTheme: FloorTheme = FLOOR_THEMES[1]
 
   constructor() {
     super({ key: 'GameScene' })
@@ -164,8 +169,8 @@ export class GameScene extends Phaser.Scene {
   private create1F() {
     this.mapCols = COLS_1F
     this.mapRows = ROWS_1F
-    this.drawField(0x2d5a1b, 0x1e3e12)
-    this.drawStair(STAIRS_1F_UP, '▲', 0x886622, 0xffdd88, '#ffdd88')
+    this.drawTileField(1)
+    this.drawStairTile(STAIRS_1F_UP, 'up')
     this.createSecretStairs()
     this.createStatues()
     this.setNpcs(NPCS_1F, this.isBossDefeated(MAOU))
@@ -176,9 +181,9 @@ export class GameScene extends Phaser.Scene {
     this.mapRows = ROWS_2F
     for (const w of WALLS_2F) this.wallSet.add(`${w.x},${w.y}`)
 
-    this.drawField(0x1a1a2a, 0x111122)
-    this.drawWalls(WALLS_2F, 0x555566, 0x8888aa)
-    this.drawStair(STAIRS_2F_DOWN, '▼', 0x334422, 0x88dd44, '#88dd44')
+    this.drawTileField(2)
+    this.drawWalls(WALLS_2F)
+    this.drawStairTile(STAIRS_2F_DOWN, 'down')
     this.drawLockableStair(STAIRS_2F_UP, this.isBossDefeated(KING_SLIME))
 
     this.setNpcs(NPCS_2F, this.isBossDefeated(KING_SLIME))
@@ -194,9 +199,9 @@ export class GameScene extends Phaser.Scene {
     this.minCol = MIN_COL_3F
     for (const w of WALLS_3F) this.wallSet.add(`${w.x},${w.y}`)
 
-    this.drawField(0x2a1a0a, 0x1a1008)
-    this.drawWalls(WALLS_3F, 0x554433, 0x887755)
-    this.drawStair(STAIRS_3F_DOWN, '▼', 0x334422, 0x88dd44, '#88dd44')
+    this.drawTileField(3)
+    this.drawWalls(WALLS_3F)
+    this.drawStairTile(STAIRS_3F_DOWN, 'down')
     this.drawLockableStair(STAIRS_3F_UP, this.isBossDefeated(GOLEM))
 
     this.setNpcs(NPCS_3F, this.isBossDefeated(GOLEM))
@@ -212,9 +217,9 @@ export class GameScene extends Phaser.Scene {
     this.mapRows = ROWS_4F
     for (const w of WALLS_4F) this.wallSet.add(`${w.x},${w.y}`)
 
-    this.drawField(0x10202a, 0x0a141c)
-    this.drawWalls(WALLS_4F, 0x445566, 0x7788aa)
-    this.drawStair(STAIRS_4F_DOWN, '▼', 0x334422, 0x88dd44, '#88dd44')
+    this.drawTileField(4)
+    this.drawWalls(WALLS_4F)
+    this.drawStairTile(STAIRS_4F_DOWN, 'down')
     this.drawLockableStair(STAIRS_4F_UP, this.isBossDefeated(DULLAHAN))
 
     this.setNpcs(NPCS_4F, this.isBossDefeated(DULLAHAN))
@@ -229,13 +234,13 @@ export class GameScene extends Phaser.Scene {
     this.mapRows = ROWS_5F
     for (const w of WALLS_5F) this.wallSet.add(`${w.x},${w.y}`)
 
-    this.drawField(0x202a10, 0x141c0a)
-    this.drawWalls(WALLS_5F, 0x556644, 0x88aa66)
-    this.drawStair(STAIRS_5F_DOWN, '▼', 0x334422, 0x88dd44, '#88dd44')
+    this.drawTileField(5)
+    this.drawWalls(WALLS_5F)
+    this.drawStairTile(STAIRS_5F_DOWN, 'down')
     this.drawLockableStair(STAIRS_5F_UP, this.isBossDefeated(DRAGON))
 
     this.setNpcs(NPCS_5F, this.isBossDefeated(DRAGON))
-    this.drawNpc(SHRINE_POS, '祭', 0x886688)
+    this.drawTile(SHRINE_POS.x, SHRINE_POS.y, TILE_FRAMES.altarFountain)
     this.npcs.push({
       pos: { ...SHRINE_POS },
       dialog: () => SaveManager.state.npcCodes.includes(OLD_MAN_NPC_CODE)
@@ -250,9 +255,9 @@ export class GameScene extends Phaser.Scene {
     this.mapRows = ROWS_TOP
     for (const w of WALLS_TOP) this.wallSet.add(`${w.x},${w.y}`)
 
-    this.drawField(0x2a1020, 0x1c0a14)
-    this.drawWalls(WALLS_TOP, 0x663355, 0x995588)
-    this.drawStair(STAIRS_TOP_DOWN, '▼', 0x334422, 0x88dd44, '#88dd44')
+    this.drawTileField(6)
+    this.drawWalls(WALLS_TOP)
+    this.drawStairTile(STAIRS_TOP_DOWN, 'down')
 
     this.setNpcs(NPCS_TOP, this.isBossDefeated(MAOU))
     if (!this.isBossDefeated(MAOU)) {
@@ -275,9 +280,9 @@ export class GameScene extends Phaser.Scene {
     this.mapRows = ROWS_M1F
     for (const w of WALLS_M1F) this.wallSet.add(`${w.x},${w.y}`)
 
-    this.drawField(0x000011, 0x110033)
-    this.drawWalls(WALLS_M1F, 0x222244, 0x444477)
-    this.drawStair(STAIRS_M1F_UP, '▲', 0x886622, 0xffdd88, '#ffdd88')
+    this.drawTileField(-1)
+    this.drawWalls(WALLS_M1F)
+    this.drawStairTile(STAIRS_M1F_UP, 'up')
 
     this.setNpcs(NPCS_M1F)
     this.setupBoss(CHAOS, BOSS_M1F_POS)
@@ -313,32 +318,50 @@ export class GameScene extends Phaser.Scene {
     return { x: gx * TILE + TILE / 2, y: gy * TILE + TILE / 2 }
   }
 
-  private drawField(fill: number, gridLine: number) {
-    const x0 = this.minCol * TILE
-    const g = this.add.graphics()
-    g.fillStyle(fill)
-    g.fillRect(x0, 0, (this.mapCols - this.minCol) * TILE, this.mapRows * TILE)
-    g.lineStyle(1, gridLine)
-    for (let c = this.minCol; c <= this.mapCols; c++) g.lineBetween(c * TILE, 0, c * TILE, this.mapRows * TILE)
-    for (let r = 0; r <= this.mapRows; r++) g.lineBetween(x0, r * TILE, this.mapCols * TILE, r * TILE)
+  private drawTile(gx: number, gy: number, frame: number, tint = 0xffffff) {
+    const { x, y } = this.tileCenter(gx, gy)
+    return this.add.image(x, y, TILESET.key, frame)
+      .setScale(TILE / TILESET.frameWidth)
+      .setTint(tint)
   }
 
-  private drawWalls(walls: { x: number; y: number }[], fill: number, stroke: number) {
-    const g = this.add.graphics()
-    g.fillStyle(fill)
-    g.lineStyle(1, stroke)
-    for (const w of walls) {
-      g.fillRect(w.x * TILE, w.y * TILE, TILE, TILE)
-      g.strokeRect(w.x * TILE, w.y * TILE, TILE, TILE)
+  private drawTileField(z: number) {
+    const theme = FLOOR_THEMES[z]
+    this.floorTheme = theme
+    const x0 = this.minCol * TILE
+    const w = (this.mapCols - this.minCol) * TILE
+    const h = this.mapRows * TILE
+    this.add.rectangle(x0 + w / 2, h / 2, w, h, theme.bg)
+    for (let gx = this.minCol; gx < this.mapCols; gx++) {
+      for (let gy = 0; gy < this.mapRows; gy++) {
+        const r = ((gx * 7 + gy * 13) % 11 + 11) % 11
+        const frame = r === 0 ? TILE_FRAMES.floorPebble
+          : r === 5 ? TILE_FRAMES.floorRubble
+          : r === 8 ? TILE_FRAMES.floorSpeck
+          : TILE_FRAMES.floorPlain
+        this.drawTile(gx, gy, frame, theme.floorTint)
+      }
     }
+  }
+
+  private drawWalls(walls: { x: number; y: number }[]) {
+    for (const w of walls) {
+      const frame = (w.x * 5 + w.y * 3) % 7 === 0
+        ? TILE_FRAMES.wallBrickLit
+        : TILE_FRAMES.wallBrick
+      this.drawTile(w.x, w.y, frame, this.floorTheme.wallTint)
+    }
+  }
+
+  private drawStairTile(pos: { x: number; y: number }, kind: keyof typeof STAIR_TINTS) {
+    const frame = kind === 'locked' ? TILE_FRAMES.gateLocked
+      : kind === 'up' ? TILE_FRAMES.doorWood
+      : TILE_FRAMES.doorMetal
+    this.drawTile(pos.x, pos.y, frame, STAIR_TINTS[kind])
   }
 
   private drawLockableStair(pos: { x: number; y: number }, unlocked: boolean) {
-    if (unlocked) {
-      this.drawStair(pos, '▲', 0x886622, 0xffdd88, '#ffdd88')
-    } else {
-      this.drawStair(pos, '▲', 0x444444, 0x666666, '#666666')
-    }
+    this.drawStairTile(pos, unlocked ? 'up' : 'locked')
   }
 
   private drawBossMarker(pos: { x: number; y: number }, visual: BossVisual) {
@@ -354,35 +377,21 @@ export class GameScene extends Phaser.Scene {
     this.add.container(x, y, [g, mark])
   }
 
-  private drawStair(
-    pos: { x: number; y: number },
-    symbol: string,
-    bg: number,
-    border: number,
-    textColor: string,
-  ) {
-    const { x, y } = this.tileCenter(pos.x, pos.y)
-    this.add.rectangle(x, y, TILE - 4, TILE - 4, bg).setStrokeStyle(2, border)
-    this.add.text(x, y, symbol, { fontSize: '28px', color: textColor, fontFamily: 'monospace' }).setOrigin(0.5)
-  }
-
   private createSecretStairs() {
     const { x, y } = this.tileCenter(STATUE_R.x, STATUE_R.y)
-    const rect = this.add.rectangle(0, 0, TILE - 4, TILE - 4, 0x224466).setStrokeStyle(2, 0x88ccff)
-    const label = this.add.text(0, 0, '▼', {
-      fontSize: '28px', color: '#88ccff', fontFamily: 'monospace',
-    }).setOrigin(0.5)
-    this.secretStairsContainer = this.add.container(x, y, [rect, label]).setVisible(false)
+    const img = this.add.image(0, 0, TILESET.key, TILE_FRAMES.doorMetal)
+      .setScale(TILE / TILESET.frameWidth)
+      .setTint(STAIR_TINTS.secret)
+    this.secretStairsContainer = this.add.container(x, y, [img]).setVisible(false)
   }
 
   private createStatues() {
     for (const origin of [STATUE_L, STATUE_R]) {
       const { x, y } = this.tileCenter(origin.x, origin.y)
-      const rect = this.add.rectangle(0, 0, TILE - 8, TILE - 8, 0x333344).setStrokeStyle(2, 0x8888bb)
-      const text = this.add.text(0, 0, '像', {
-        fontSize: '28px', color: '#aaaacc', fontFamily: 'monospace',
-      }).setOrigin(0.5)
-      const c = this.add.container(x, y, [rect, text])
+      const img = this.add.image(0, 0, TILESET.key, TILE_FRAMES.statueFace)
+        .setScale(TILE / TILESET.frameWidth)
+        .setTint(STATUE_TINT)
+      const c = this.add.container(x, y, [img])
       this.statues.push({ pos: { x: origin.x, y: origin.y }, container: c })
     }
   }
