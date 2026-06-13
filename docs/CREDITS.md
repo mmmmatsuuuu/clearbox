@@ -4,4 +4,4 @@
 
 | 素材 | 作者 | ライセンス | 出典 | ファイル | 用途 |
 |---|---|---|---|---|---|
-| Steamworks タイル | 本プロジェクト自作 | プロジェクト内 | `scripts/generate-steamworks.py` で生成 | `public/assets/tilesets/steamworks.png` | レンガ/リベット床・パイプ/ランプ/モニター壁・エレベーター・機械仕掛けの像・水晶の祭壇（32×32 フルカラー、tint で各階の色味を調整） |
+| Steamworks タイル | 本プロジェクト自作 | プロジェクト内 | `scripts/generate-steamworks.py` で生成 | `public/assets/tilesets/steamworks.png` | レンガ/リベット床・外壁（レンガ/真鍮）・内壁（パイプ3種/ランプ/モニター）・階段（上り/下り/封鎖）・機械仕掛けの像・水晶の祭壇（32×32 フルカラー、tint で各階の色味を調整） |

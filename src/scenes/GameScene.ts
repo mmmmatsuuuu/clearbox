@@ -342,22 +342,24 @@ export class GameScene extends Phaser.Scene {
     this.drawPerimeter()
   }
 
-  // マップ外周を1タイル分のパイプ壁で囲み「塔の中」感を出す
+  // マップ外周を1タイル分のレンガ/真鍮の壁で囲み「塔の中」感を出す
   private drawPerimeter() {
     const left = this.minCol - 1
     const right = this.mapCols
     const top = -1
     const bottom = this.mapRows
+    const frame = this.floorTheme.perimeter
     for (let gx = left; gx <= right; gx++) {
-      this.drawSteamTile(gx, top, wallFrameAt(gx, top), this.floorTheme.tint)
-      this.drawSteamTile(gx, bottom, wallFrameAt(gx, bottom), this.floorTheme.tint)
+      this.drawSteamTile(gx, top, frame, this.floorTheme.tint)
+      this.drawSteamTile(gx, bottom, frame, this.floorTheme.tint)
     }
     for (let gy = top; gy <= bottom; gy++) {
-      this.drawSteamTile(left, gy, wallFrameAt(left, gy), this.floorTheme.tint)
-      this.drawSteamTile(right, gy, wallFrameAt(right, gy), this.floorTheme.tint)
+      this.drawSteamTile(left, gy, frame, this.floorTheme.tint)
+      this.drawSteamTile(right, gy, frame, this.floorTheme.tint)
     }
   }
 
+  // 内壁はパイプ/ランプ/モニターの装飾壁
   private drawWalls(walls: { x: number; y: number }[]) {
     for (const w of walls) {
       this.drawSteamTile(w.x, w.y, wallFrameAt(w.x, w.y), this.floorTheme.tint)
@@ -365,9 +367,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private drawStairTile(pos: { x: number; y: number }, kind: keyof typeof STAIR_TINTS) {
-    const frame = kind === 'locked' ? STEAM_FRAMES.elevatorLocked
-      : kind === 'down' ? STEAM_FRAMES.elevatorDown
-      : STEAM_FRAMES.elevatorUp
+    const frame = kind === 'locked' ? STEAM_FRAMES.stairLocked
+      : kind === 'down' ? STEAM_FRAMES.stairDown
+      : STEAM_FRAMES.stairUp
     this.drawSteamTile(pos.x, pos.y, frame, STAIR_TINTS[kind])
   }
 
@@ -390,7 +392,7 @@ export class GameScene extends Phaser.Scene {
 
   private createSecretStairs() {
     const { x, y } = this.tileCenter(STATUE_R.x, STATUE_R.y)
-    const img = this.add.image(0, 0, STEAMWORKS.key, STEAM_FRAMES.elevatorDown)
+    const img = this.add.image(0, 0, STEAMWORKS.key, STEAM_FRAMES.stairDown)
       .setScale(TILE / STEAMWORKS.frameWidth)
       .setTint(STAIR_TINTS.secret)
     this.secretStairsContainer = this.add.container(x, y, [img]).setVisible(false)
