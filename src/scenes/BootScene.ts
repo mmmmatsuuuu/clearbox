@@ -8,6 +8,14 @@ export const TILESET = {
   frameHeight: 16,
 } as const
 
+// scripts/generate-steamworks.py で生成（パイプ壁・床・階段）
+export const STEAMWORKS = {
+  key: 'steamworks',
+  path: 'assets/tilesets/steamworks.png',
+  frameWidth: 16,
+  frameHeight: 16,
+} as const
+
 export class BootScene extends Phaser.Scene {
   constructor() {
     super({ key: 'BootScene' })
@@ -34,6 +42,10 @@ export class BootScene extends Phaser.Scene {
     this.load.spritesheet(TILESET.key, TILESET.path, {
       frameWidth: TILESET.frameWidth,
       frameHeight: TILESET.frameHeight,
+    })
+    this.load.spritesheet(STEAMWORKS.key, STEAMWORKS.path, {
+      frameWidth: STEAMWORKS.frameWidth,
+      frameHeight: STEAMWORKS.frameHeight,
     })
   }
 

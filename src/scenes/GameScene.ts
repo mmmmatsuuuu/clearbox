@@ -1,9 +1,11 @@
 import Phaser from 'phaser'
 import { SaveManager } from '../save/SaveManager'
 import { DialogBox, type DialogSpeaker } from '../objects/DialogBox'
-import { TILESET } from './BootScene'
+import { TILESET, STEAMWORKS } from './BootScene'
 import {
-  FLOOR_THEMES, STAIR_TINTS, STATUE_TINT, TILE_FRAMES, type FloorTheme,
+  FLOOR_THEMES, STAIR_TINTS, STATUE_TINT, ALTAR_TINT,
+  STEAM_FRAMES, DUNGEON_FRAMES, PIPE_BASE, PIPE_N, PIPE_E, PIPE_S, PIPE_W,
+  floorFrameAt, type FloorTheme,
 } from '../data/tiles'
 import { StatusScreen } from '../objects/StatusScreen'
 import type { BossConfig, BossVisual } from './BattleScene'
@@ -122,9 +124,10 @@ export class GameScene extends Phaser.Scene {
 
     this.createHero()
     this.cameras.main.startFollow(this.heroContainer, true)
+    // 外周のパイプ囲い1タイル分をカメラ範囲に含める
     this.cameras.main.setBounds(
-      this.minCol * TILE, 0,
-      (this.mapCols - this.minCol) * TILE, this.mapRows * TILE,
+      (this.minCol - 1) * TILE, -TILE,
+      (this.mapCols - this.minCol + 2) * TILE, (this.mapRows + 2) * TILE,
     )
 
     this.createHud()
@@ -240,7 +243,7 @@ export class GameScene extends Phaser.Scene {
     this.drawLockableStair(STAIRS_5F_UP, this.isBossDefeated(DRAGON))
 
     this.setNpcs(NPCS_5F, this.isBossDefeated(DRAGON))
-    this.drawTile(SHRINE_POS.x, SHRINE_POS.y, TILE_FRAMES.altarFountain)
+    this.drawTile(SHRINE_POS.x, SHRINE_POS.y, DUNGEON_FRAMES.altarFountain, ALTAR_TINT)
     this.npcs.push({
       pos: { ...SHRINE_POS },
       dialog: () => SaveManager.state.npcCodes.includes(OLD_MAN_NPC_CODE)
@@ -325,39 +328,63 @@ export class GameScene extends Phaser.Scene {
       .setTint(tint)
   }
 
+  private drawSteamTile(gx: number, gy: number, frame: number, tint = 0xffffff) {
+    const { x, y } = this.tileCenter(gx, gy)
+    return this.add.image(x, y, STEAMWORKS.key, frame)
+      .setScale(TILE / STEAMWORKS.frameWidth)
+      .setTint(tint)
+  }
+
   private drawTileField(z: number) {
     const theme = FLOOR_THEMES[z]
     this.floorTheme = theme
-    const x0 = this.minCol * TILE
-    const w = (this.mapCols - this.minCol) * TILE
-    const h = this.mapRows * TILE
-    this.add.rectangle(x0 + w / 2, h / 2, w, h, theme.bg)
+    const x0 = (this.minCol - 1) * TILE
+    const w = (this.mapCols - this.minCol + 2) * TILE
+    const h = (this.mapRows + 2) * TILE
+    this.add.rectangle(x0 + w / 2, h / 2 - TILE, w, h, theme.bg)
     for (let gx = this.minCol; gx < this.mapCols; gx++) {
       for (let gy = 0; gy < this.mapRows; gy++) {
-        const r = ((gx * 7 + gy * 13) % 11 + 11) % 11
-        const frame = r === 0 ? TILE_FRAMES.floorPebble
-          : r === 5 ? TILE_FRAMES.floorRubble
-          : r === 8 ? TILE_FRAMES.floorSpeck
-          : TILE_FRAMES.floorPlain
-        this.drawTile(gx, gy, frame, theme.floorTint)
+        this.drawSteamTile(gx, gy, floorFrameAt(gx, gy), theme.floorTint)
       }
+    }
+    this.drawPerimeter()
+  }
+
+  // マップ外周を1タイル分のパイプで囲み「塔の中」感を出す
+  private drawPerimeter() {
+    const left = this.minCol - 1
+    const right = this.mapCols
+    const top = -1
+    const bottom = this.mapRows
+    for (let gx = left; gx <= right; gx++) {
+      const topMask = (gx > left ? PIPE_W : 0) | (gx < right ? PIPE_E : 0)
+      const botMask = topMask
+      this.drawSteamTile(gx, top, PIPE_BASE + topMask, this.floorTheme.pipeTint)
+      this.drawSteamTile(gx, bottom, PIPE_BASE + botMask, this.floorTheme.pipeTint)
+    }
+    for (let gy = top; gy <= bottom; gy++) {
+      const mask = (gy > top ? PIPE_N : 0) | (gy < bottom ? PIPE_S : 0)
+      this.drawSteamTile(left, gy, PIPE_BASE + mask, this.floorTheme.pipeTint)
+      this.drawSteamTile(right, gy, PIPE_BASE + mask, this.floorTheme.pipeTint)
     }
   }
 
   private drawWalls(walls: { x: number; y: number }[]) {
+    const inSet = (x: number, y: number) => this.wallSet.has(`${x},${y}`)
     for (const w of walls) {
-      const frame = (w.x * 5 + w.y * 3) % 7 === 0
-        ? TILE_FRAMES.wallBrickLit
-        : TILE_FRAMES.wallBrick
-      this.drawTile(w.x, w.y, frame, this.floorTheme.wallTint)
+      const mask = (inSet(w.x, w.y - 1) ? PIPE_N : 0)
+        | (inSet(w.x + 1, w.y) ? PIPE_E : 0)
+        | (inSet(w.x, w.y + 1) ? PIPE_S : 0)
+        | (inSet(w.x - 1, w.y) ? PIPE_W : 0)
+      this.drawSteamTile(w.x, w.y, PIPE_BASE + mask, this.floorTheme.pipeTint)
     }
   }
 
   private drawStairTile(pos: { x: number; y: number }, kind: keyof typeof STAIR_TINTS) {
-    const frame = kind === 'locked' ? TILE_FRAMES.gateLocked
-      : kind === 'up' ? TILE_FRAMES.doorWood
-      : TILE_FRAMES.doorMetal
-    this.drawTile(pos.x, pos.y, frame, STAIR_TINTS[kind])
+    const frame = kind === 'locked' ? STEAM_FRAMES.stairLocked
+      : kind === 'down' ? STEAM_FRAMES.stairDown
+      : STEAM_FRAMES.stairUp
+    this.drawSteamTile(pos.x, pos.y, frame, STAIR_TINTS[kind])
   }
 
   private drawLockableStair(pos: { x: number; y: number }, unlocked: boolean) {
@@ -379,8 +406,8 @@ export class GameScene extends Phaser.Scene {
 
   private createSecretStairs() {
     const { x, y } = this.tileCenter(STATUE_R.x, STATUE_R.y)
-    const img = this.add.image(0, 0, TILESET.key, TILE_FRAMES.doorMetal)
-      .setScale(TILE / TILESET.frameWidth)
+    const img = this.add.image(0, 0, STEAMWORKS.key, STEAM_FRAMES.stairDown)
+      .setScale(TILE / STEAMWORKS.frameWidth)
       .setTint(STAIR_TINTS.secret)
     this.secretStairsContainer = this.add.container(x, y, [img]).setVisible(false)
   }
@@ -388,7 +415,7 @@ export class GameScene extends Phaser.Scene {
   private createStatues() {
     for (const origin of [STATUE_L, STATUE_R]) {
       const { x, y } = this.tileCenter(origin.x, origin.y)
-      const img = this.add.image(0, 0, TILESET.key, TILE_FRAMES.statueFace)
+      const img = this.add.image(0, 0, TILESET.key, DUNGEON_FRAMES.statueFace)
         .setScale(TILE / TILESET.frameWidth)
         .setTint(STATUE_TINT)
       const c = this.add.container(x, y, [img])
