@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { SaveManager } from '../save/SaveManager'
-import { DialogBox } from '../objects/DialogBox'
+import { DialogBox, type DialogSpeaker } from '../objects/DialogBox'
 import { StatusScreen } from '../objects/StatusScreen'
 import type { BossConfig, BossVisual } from './BattleScene'
 import {
@@ -31,7 +31,11 @@ let introCompleted = false
 
 // ─── Types ────────────────────────────────────────────
 type StatueDef = { pos: { x: number; y: number }; container: Phaser.GameObjects.Container }
-type NpcDef    = { pos: { x: number; y: number }; dialog: string[] | (() => string[]) }
+type NpcDef = {
+  pos: { x: number; y: number }
+  dialog: string[] | (() => string[])
+  speaker?: DialogSpeaker
+}
 type SkillItem = {
   pos: { x: number; y: number }
   code: number
@@ -128,10 +132,14 @@ export class GameScene extends Phaser.Scene {
     this.setupButtons()
 
     if (z === 1 && !introCompleted) {
-      this.dialog.show(NPC_DIALOG_1F, () => {
-        introCompleted = true
-        this.movementLocked = false
-      })
+      this.dialog.show(
+        NPC_DIALOG_1F,
+        () => {
+          introCompleted = true
+          this.movementLocked = false
+        },
+        { name: NPCS_1F[0].name, code: NPCS_1F[0].code },
+      )
       return
     }
 
@@ -251,7 +259,11 @@ export class GameScene extends Phaser.Scene {
       this.setupBoss(MAOU, BOSS_TOP_POS)
     } else {
       this.drawNpc(PRINCESS_POS, '姫', 0xdd88aa)
-      this.npcs.push({ pos: { ...PRINCESS_POS }, dialog: PRINCESS_DIALOG })
+      this.npcs.push({
+        pos: { ...PRINCESS_POS },
+        dialog: PRINCESS_DIALOG,
+        speaker: { name: '技師の姫' },
+      })
     }
     this.addSkillItem(SKILL_TOP_POS, 0xD9, [
       'スキル「ホーリー」を会得した！\nコード: 0xD9 / 威力: 200',
@@ -276,6 +288,7 @@ export class GameScene extends Phaser.Scene {
     this.npcs = defs.map(d => ({
       pos: { ...d.pos },
       dialog: bossDefeated && d.dialogAfterWin ? d.dialogAfterWin : d.dialog,
+      speaker: { name: d.name, code: d.code },
     }))
   }
 
@@ -747,7 +760,7 @@ export class GameScene extends Phaser.Scene {
         const nearNpc = this.npcs.find(n => this.isNear(n.pos))
         if (nearNpc) {
           const lines = typeof nearNpc.dialog === 'function' ? nearNpc.dialog() : nearNpc.dialog
-          this.dialog.show(lines)
+          this.dialog.show(lines, undefined, nearNpc.speaker)
           return
         }
         const nearStatue = this.statues.find(s => this.isNear(s.pos))

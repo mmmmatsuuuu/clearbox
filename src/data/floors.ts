@@ -5,6 +5,8 @@ export type NpcData = {
   pos: TilePos
   label: string
   color: number
+  name: string
+  code?: number
   dialog: string[]
   dialogAfterWin?: string[]
 }
@@ -17,12 +19,14 @@ export const STAIRS_1F_UP: TilePos = { x: 3, y: 0 }
 export const STATUE_L: TilePos = { x: 1, y: 0 }
 export const STATUE_R: TilePos = { x: 5, y: 0 }
 
+export const OLD_MAN_NPC_CODE = 0x9D
+
 export const NPC_DIALOG_1F = [
-  '老技師「……来たか、勇者よ。\nわしは姫に仕える技師じゃ。\n姫はこの大機関塔を設計し、\n不正から守ってくれていた。」',
-  '老技師「その姫が、塔の中枢で\n暴走した機械王に幽閉された。\n塔を登り、機械王を倒して\n姫を救い出してくれ。」',
-  '老技師「塔の機械どもは\n魔物と化しておる。\nこまめにセーブするのじゃぞ。\n……ただし、不正はいかんぞ。」',
-  '老技師「これを持ちなさい。\n姫が残した「誠実のリング」じゃ。\nSボタンでステータスを確認できる。\n誠実さを確認できるだろう。」',
-  '老技師「わしはこの塔の1階で、\n最初にそなたを迎えた者。\n…それだけは、覚えておいて\nくれよ。」',
+  '……来たか、勇者よ。\nわしは姫に仕える技師じゃ。\n姫はこの大機関塔を設計し、\n不正から守ってくれていた。',
+  'その姫が、塔の中枢で\n暴走した機械王に幽閉された。\n塔を登り、機械王を倒して\n姫を救い出してくれ。',
+  '塔の機械どもは\n魔物と化しておる。\nこまめにセーブするのじゃぞ。\n……ただし、不正はいかんぞ。',
+  'これを持ちなさい。\n姫が残した「誠実のリング」じゃ。\nSボタンでステータスを確認できる。\n誠実さを確認できるだろう。',
+  'わしはこの塔の1階で、\n最初にそなたを迎えた者。\n…それだけは、覚えておいて\nくれよ。',
 ]
 
 export const STATUE_DIALOG = [
@@ -31,11 +35,13 @@ export const STATUE_DIALOG = [
 
 export const NPCS_1F: NpcData[] = [
   {
-    pos: { x: 2, y: 4 }, label: '老', color: 0xaa8844, dialog: NPC_DIALOG_1F,
+    pos: { x: 2, y: 4 }, label: '老', color: 0xaa8844,
+    name: '老技師', code: OLD_MAN_NPC_CODE,
+    dialog: NPC_DIALOG_1F,
     dialogAfterWin: [
-      '老技師「おお…機械王を倒し、\n姫を救い出したのじゃな！\nよくやってくれた、勇者よ。」',
-      '老技師「じゃが、塔の地下には\nまだ何かが眠っておるという。\n気になるなら、あのからくり像を\n調べてみるのじゃ。」',
-      '老技師「わしはこの塔の1階で、\n最初にそなたを迎えた者。\n…それだけは、忘れんで\nくれよ。」',
+      'おお…機械王を倒し、\n姫を救い出したのじゃな！\nよくやってくれた、勇者よ。',
+      'じゃが、塔の地下には\nまだ何かが眠っておるという。\n気になるなら、あのからくり像を\n調べてみるのじゃ。',
+      'わしはこの塔の1階で、\n最初にそなたを迎えた者。\n…それだけは、忘れんで\nくれよ。',
     ],
   },
 ]
@@ -68,6 +74,7 @@ export const WALLS_2F: TilePos[] = [
 export const NPCS_2F: NpcData[] = [
   {
     pos: { x: 4, y: 13 }, label: '人', color: 0x447744,
+    name: '見習い工', code: 0x3A,
     dialog: ['ここのボスは粘り強いらしいぞ！頑張れよ！'],
     dialogAfterWin: [
       'あのしぶといオイルスライムを\n倒しちまったのか！\n上へ続く階段も開いたな。',
@@ -75,6 +82,7 @@ export const NPCS_2F: NpcData[] = [
   },
   {
     pos: { x: 6, y: 8 }, label: '人', color: 0x447744,
+    name: '配管工', code: 0x71,
     dialog: ['おまえそんなHPで大丈夫か？'],
     dialogAfterWin: [
       'ボスを倒しちまうとは…。\nその HP、いったいどうやって\n鍛えたんだ？',
@@ -82,6 +90,7 @@ export const NPCS_2F: NpcData[] = [
   },
   {
     pos: { x: 0, y: 0 }, label: '人', color: 0x447744,
+    name: '偏屈な技師', code: 0xC2,
     dialog: [
       'ボスに勝てない？\nもうセーブデータをいじるしか\n無いよな？',
       'どこをいじればいいかって？\nそれは自分で考えろ！',
@@ -127,6 +136,7 @@ export const WALLS_3F: TilePos[] = [
 export const NPCS_3F: NpcData[] = [
   {
     pos: { x: 2, y: 12 }, label: '人', color: 0x774444,
+    name: '蒸気管の整備士', code: 0x58,
     dialog: [
       '西の壁の向こうに、何か\n光るものが見えるんだ。\nだが、どう歩いても\nたどり着けない…。',
     ],
@@ -136,13 +146,13 @@ export const NPCS_3F: NpcData[] = [
   },
   {
     pos: { x: 11, y: 7 }, label: '人', color: 0x774444,
+    name: '隠居した技師', code: 0xE7,
     dialog: [
       'セーブデータには勇者の座標\nCX・CY が刻まれている。\n符号付きの1バイト…\nint8 というやつじゃ。',
-      'int8 では 0xFF は 255 ではない。\nさて、いくつになるかのう？\n…ちなみに、わしの登録番号は\n0x32 じゃ。',
+      'int8 では 0xFF は 255 ではない。\nさて、いくつになるかのう？',
     ],
     dialogAfterWin: [
       '蒸気ゴーレム撃破、お見事じゃ。\n符号付き整数を\n使いこなしたようじゃの。',
-      'わしの登録番号は 0x32。\nそれも忘れんでくれよ。',
     ],
   },
 ]
@@ -178,17 +188,17 @@ export const WALLS_4F: TilePos[] = [
 export const NPCS_4F: NpcData[] = [
   {
     pos: { x: 5, y: 12 }, label: '人', color: 0x447777,
+    name: '工廠の工員', code: 0x24,
     dialog: [
       'ここのボスは化け物だ。\nHP255 の勇者が挑んで\n返り討ちにあったらしい…。\n255 が限界？ 本当にそうか？',
-      'あ、俺の登録番号は 0x41 な。',
     ],
     dialogAfterWin: [
       'あの化け物を倒したのか！\nつまり、255 の壁を\n越えたってことだよな…。',
-      '俺の登録番号は 0x41。\n覚えておいてくれよな。',
     ],
   },
   {
     pos: { x: 3, y: 6 }, label: '人', color: 0x447777,
+    name: '計器職人', code: 0x9B,
     dialog: [
       'HP の記録には2バイト\n使われているらしいぜ。\nリトルエンディアン…\n下位の隣は 256 の位だ。',
     ],
@@ -209,7 +219,7 @@ export const DULLAHAN: BossConfig = {
   returnScene: 'GameScene',
 }
 
-// ─── 5F（機関登録番号の予測）──────────────────────────
+// ─── 5F（機関登録番号 / NC 領域）──────────────────────
 export const COLS_5F = 16
 export const ROWS_5F = 16
 
@@ -217,8 +227,6 @@ export const STAIRS_5F_UP: TilePos = { x: 7, y: 0 }
 export const STAIRS_5F_DOWN: TilePos = { x: 7, y: 15 }
 export const BOSS_5F_POS: TilePos = { x: 7, y: 1 }
 export const SHRINE_POS: TilePos = { x: 2, y: 2 }
-
-export const OLD_MAN_NPC_CODE = 0x11
 
 export const WALLS_5F: TilePos[] = [
   { x: 6, y: 0 }, { x: 8, y: 0 },
@@ -229,20 +237,21 @@ export const WALLS_5F: TilePos[] = [
 export const NPCS_5F: NpcData[] = [
   {
     pos: { x: 10, y: 13 }, label: '老', color: 0x777744,
+    name: '計算機関の番人', code: 0x66,
     dialog: [
-      'この塔の住人と魔物には\nみんな機関登録番号が\n振られている。倒した魔物の\n番号は記録されるはずだ。',
-      'ちなみにわしの登録番号は\n0x51。5階の1人目だからな。',
+      'この塔の住人はみんな、\n機関登録番号のプレートを\n身につけている。\nわしのも見えているだろう？',
+      '魔物にも番号が振られていて、\n倒した魔物の番号は\nセーブデータに記録される\nはずだ。',
     ],
     dialogAfterWin: [
       '機竜を倒したか！\n撃破の番号はセーブデータに\n刻まれたはずだ。確認してみろ。',
-      'わしの登録番号は 0x51。\n5階の1人目だからな。',
     ],
   },
   {
     pos: { x: 3, y: 8 }, label: '人', color: 0x777744,
+    name: '機関士', code: 0xD1,
     dialog: [
-      '登録番号の仕組みは単純よ。\n上の桁が「階」、\n下の桁が「その階での順番」。\n私は5階の2人目で 0x52。',
-      '…そういえば、1階で最初に\n出会った人は誰だったかしら？',
+      '奥の祭壇、「最初の住人との絆」\nを求めているらしいわ。\n絆…登録番号のことかしら。',
+      '最初の住人…この塔で最初に\nあなたを迎えた人は、\n誰だったかしら？',
     ],
     dialogAfterWin: [
       'すごいわね、あの機竜を\n倒しちゃうなんて。',
@@ -292,6 +301,7 @@ export const WALLS_TOP: TilePos[] = [
 export const NPCS_TOP: NpcData[] = [
   {
     pos: { x: 1, y: 8 }, label: '守', color: 0x666688,
+    name: '守衛', code: 0x42,
     dialog: [
       'うう…機械王には\n敵わなかった…。\nやつは姫様の力で、セーブ\nデータの誠実さを見抜いてくる…。',
       '誠実のリングの値は、HP と\nスキルの全6バイトの XOR だと\n姫様が言っていた…。\n書き換えたなら、リングも…うう…',
@@ -305,9 +315,9 @@ export const NPCS_TOP: NpcData[] = [
 ]
 
 export const PRINCESS_DIALOG = [
-  '姫「勇者様、ありがとう！\nあなたの誠実な力が\n機械王を打ち破ったのです。」',
-  '姫「機械王の禁術「メギド」が\n残されています。コード: 0xFA。\nですが真の威力は\n封印されたままのようです…」',
-  '姫「1階のからくり像の下…\n塔の地下に、まだ何かが\n眠っている気がします。」',
+  '勇者様、ありがとう！\nあなたの誠実な力が\n機械王を打ち破ったのです。',
+  '機械王の禁術「メギド」が\n残されています。コード: 0xFA。\nですが真の威力は\n封印されたままのようです…',
+  '1階のからくり像の下…\n塔の地下に、まだ何かが\n眠っている気がします。',
 ]
 
 export const MAOU: BossConfig = {
@@ -343,6 +353,7 @@ export const WALLS_M1F: TilePos[] = [
 export const NPCS_M1F: NpcData[] = [
   {
     pos: { x: 2, y: 5 }, label: '影', color: 0x333366,
+    name: '影',
     dialog: [
       '……よくぞ来た。\nここは塔の最深部。\n混沌の眠る場所。',
       'メギドの真の威力は、\nセーブデータの RV 領域…\nRVx16〜x19 の4バイトに\n封じられている。',
