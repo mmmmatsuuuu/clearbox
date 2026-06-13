@@ -1,8 +1,7 @@
 import Phaser from 'phaser'
-import { TILESET } from './BootScene'
+import { STEAMWORKS } from './BootScene'
 import { FLOOR_TINTS } from '../utils/palette'
-
-const WALL_FRAME = 0
+import { STEAM_FRAMES } from '../data/tiles'
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -51,8 +50,8 @@ export class TitleScene extends Phaser.Scene {
     const size = 32
     const x0 = width / 2 - (floors.length * size) / 2 + size / 2
     floors.forEach((z, i) => {
-      this.add.image(x0 + i * size, height - 40, TILESET.key, WALL_FRAME)
-        .setScale(size / TILESET.frameWidth)
+      this.add.image(x0 + i * size, height - 40, STEAMWORKS.key, STEAM_FRAMES.floorBrick)
+        .setScale(size / STEAMWORKS.frameWidth)
         .setTint(FLOOR_TINTS[z])
     })
   }

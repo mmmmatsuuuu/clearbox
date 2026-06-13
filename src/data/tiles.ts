@@ -1,59 +1,52 @@
-// steamworks.png（scripts/generate-steamworks.py 生成、8列×3行）のフレーム番号
-export const PIPE_BASE = 0           // 0-15: 接続ビットマスク N=1,E=2,S=4,W=8
+// steamworks.png（scripts/generate-steamworks.py 生成、32×32 px、5列2行）のフレーム番号
 export const STEAM_FRAMES = {
-  stairUp: 16,
-  stairDown: 17,
-  stairLocked: 18,
-  floorA: 19,
-  floorB: 20,
-  floorC: 21,
-  elevator: 22,
+  floorBrick: 0,
+  floorRivet: 1,
+  wallPipe: 2,
+  wallLamp: 3,
+  wallMonitor: 4,
+  elevatorUp: 5,
+  elevatorDown: 6,
+  elevatorLocked: 7,
+  statue: 8,
+  altar: 9,
 } as const
-
-// パイプ接続ビット
-export const PIPE_N = 1
-export const PIPE_E = 2
-export const PIPE_S = 4
-export const PIPE_W = 8
 
 export type FloorTheme = {
   bg: number
-  floorTint: number
-  pipeTint: number
+  tint: number              // 床・壁に掛ける淡い色味（焼き込み色を活かすため白寄り）
+  baseFloor: number         // その階の基本床フレーム
 }
 
 // WORLD_DESIGN.md「各階のビジュアルテーマ」参照。
-// 下層は錆びた銅、登るほど真鍮〜鋼〜シアンへ。-1F は混沌の赤。
+// タイルは色を持つので tint は白寄り。背景色と tint で階の雰囲気を出す。
 export const FLOOR_THEMES: Record<number, FloorTheme> = {
-  1: { bg: 0x1a120c, floorTint: 0xb8895a, pipeTint: 0xc8772e },   // レンガ・ガス灯
-  2: { bg: 0x120e0a, floorTint: 0x8a6a4a, pipeTint: 0x9c6a3a },   // 廃油・錆びた銅
-  3: { bg: 0x14100a, floorTint: 0xa87a48, pipeTint: 0xc98a3a },   // 銅と錆
-  4: { bg: 0x0e1014, floorTint: 0x99a2ae, pipeTint: 0xaab6c4 },   // 鋼
-  5: { bg: 0x14120a, floorTint: 0xd8be6a, pipeTint: 0xe6c84a },   // 真鍮
-  6: { bg: 0x06141a, floorTint: 0x8ad8e8, pipeTint: 0x3ce0ff },   // 機関シアン
-  [-1]: { bg: 0x07060a, floorTint: 0x6a5560, pipeTint: 0xff3366 }, // 混沌の赤
+  1: { bg: 0x1a120c, tint: 0xffffff, baseFloor: STEAM_FRAMES.floorBrick },
+  2: { bg: 0x140f0a, tint: 0xe6d4bc, baseFloor: STEAM_FRAMES.floorBrick },
+  3: { bg: 0x16100a, tint: 0xffeede, baseFloor: STEAM_FRAMES.floorBrick },
+  4: { bg: 0x0e1016, tint: 0xd6deec, baseFloor: STEAM_FRAMES.floorRivet },
+  5: { bg: 0x141008, tint: 0xffeec6, baseFloor: STEAM_FRAMES.floorRivet },
+  6: { bg: 0x06141a, tint: 0xc6f0ff, baseFloor: STEAM_FRAMES.floorRivet },
+  [-1]: { bg: 0x09060a, tint: 0xe0aab4, baseFloor: STEAM_FRAMES.floorRivet },
 }
 
+// 階段（エレベーター）には淡い色味のみ付ける
 export const STAIR_TINTS = {
-  up: 0xffe2a8,
-  locked: 0x8a8a92,
-  down: 0x9be0a8,
-  secret: 0x7ec8ff,
+  up: 0xffffff,
+  locked: 0xffffff,
+  down: 0xffffff,
+  secret: 0xbfe4ff,
 } as const
 
-export const STATUE_TINT = 0xddb868
-export const ALTAR_TINT = 0x9be0c0
+// 床は各階で統一（レンガ床の階／鉄板床の階で差別化。タイル内の陰影で変化は出る）
+export function floorFrameAt(_gx: number, _gy: number, base: number): number {
+  return base
+}
 
-// からくり像・祭壇は Tiny Dungeon 側のフレームを流用
-export const DUNGEON_FRAMES = {
-  statueFace: 19,
-  altarFountain: 32,
-} as const
-
-// 床バリエーションを座標から決定的に選ぶ
-export function floorFrameAt(gx: number, gy: number): number {
-  const r = ((gx * 7 + gy * 13) % 9 + 9) % 9
-  if (r === 0) return STEAM_FRAMES.floorB
-  if (r === 4) return STEAM_FRAMES.floorC
-  return STEAM_FRAMES.floorA
+// 壁は基本パイプ壁、ときどきランプ/モニターをアクセントに
+export function wallFrameAt(gx: number, gy: number): number {
+  const r = ((gx * 5 + gy * 11) % 13 + 13) % 13
+  if (r === 0) return STEAM_FRAMES.wallMonitor
+  if (r === 5) return STEAM_FRAMES.wallLamp
+  return STEAM_FRAMES.wallPipe
 }
